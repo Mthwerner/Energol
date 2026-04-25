@@ -230,6 +230,12 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
 
                     {/* Home team row */}
                     <div className="flex items-center gap-2">
+                      {odds && (
+                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-emerald-950 border border-emerald-800 text-emerald-400">
+                          <span className="text-[9px] leading-none text-emerald-700 font-medium">1</span>
+                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.home.toFixed(2)}</span>
+                        </span>
+                      )}
                       {game.homeCrest ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={game.homeCrest} alt={game.homeTeam} className="h-8 w-8 object-contain shrink-0" />
@@ -237,12 +243,6 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                         <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
                       )}
                       <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.homeTeam}</span>
-                      {odds && (
-                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-emerald-950 border border-emerald-800 text-emerald-400">
-                          <span className="text-[9px] leading-none text-emerald-700 font-medium">1</span>
-                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.home.toFixed(2)}</span>
-                        </span>
-                      )}
                       <input
                         ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
                         type="number"
@@ -259,7 +259,7 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                     </div>
 
                     {/* Draw / separator */}
-                    <div className="flex items-center gap-2 my-1.5 pl-10 pr-14">
+                    <div className="flex items-center gap-2 my-1.5">
                       <div className="flex-1 h-px bg-slate-800" />
                       {odds ? (
                         <span className="shrink-0 flex flex-col items-center w-14 py-1 rounded-md bg-amber-950 border border-amber-800 text-amber-400">
@@ -274,6 +274,12 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
 
                     {/* Away team row */}
                     <div className="flex items-center gap-2">
+                      {odds && (
+                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-sky-950 border border-sky-800 text-sky-400">
+                          <span className="text-[9px] leading-none text-sky-700 font-medium">2</span>
+                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.away.toFixed(2)}</span>
+                        </span>
+                      )}
                       {game.awayCrest ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={game.awayCrest} alt={game.awayTeam} className="h-8 w-8 object-contain shrink-0" />
@@ -281,12 +287,6 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                         <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
                       )}
                       <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.awayTeam}</span>
-                      {odds && (
-                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-sky-950 border border-sky-800 text-sky-400">
-                          <span className="text-[9px] leading-none text-sky-700 font-medium">2</span>
-                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.away.toFixed(2)}</span>
-                        </span>
-                      )}
                       <input
                         ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
                         type="number"
