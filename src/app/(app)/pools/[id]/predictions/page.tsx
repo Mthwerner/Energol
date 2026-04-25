@@ -28,8 +28,9 @@ export default async function PredictionsPage({ params }: Props) {
 
   const rounds = await listRounds(id);
 
-  const openRounds = rounds.filter((r) => r.status === 'OPEN');
-  const finishedRounds = rounds.filter((r) => r.status !== 'OPEN');
+  const now = new Date();
+  const openRounds = rounds.filter((r) => r.status === 'OPEN' && new Date(r.endDate) > now);
+  const finishedRounds = rounds.filter((r) => r.status === 'FINISHED');
 
   return (
     <div>

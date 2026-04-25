@@ -37,8 +37,9 @@ export default async function PoolPage({ params }: Props) {
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect('/pools');
 
-  const openRounds = rounds.filter((r) => r.status === 'OPEN');
-  const finishedRounds = rounds.filter((r) => r.status !== 'OPEN');
+  const now = new Date();
+  const openRounds = rounds.filter((r) => r.status === 'OPEN' && new Date(r.endDate) > now);
+  const finishedRounds = rounds.filter((r) => r.status === 'FINISHED');
 
   // Rodada mais recente aberta (maior número)
   const featuredRoundBase = openRounds[openRounds.length - 1] ?? null;
