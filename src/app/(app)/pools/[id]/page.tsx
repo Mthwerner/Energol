@@ -101,15 +101,16 @@ export default async function PoolPage({ params }: Props) {
         {myRank && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
-              { label: 'Posição', value: `#${myRank.position}` },
-              { label: 'Pontos', value: myRank.totalPoints },
-              { label: 'Placar exato', value: myRank.exactScores },
-              { label: 'Resultado certo', value: myRank.correctResults },
-            ].map(({ label, value }) => (
-              <Card key={label}>
+              { label: 'Posição',        value: `#${myRank.position}`,    bar: 'from-brand-500 to-brand-700',   valCls: 'text-brand-300' },
+              { label: 'Pontos',         value: myRank.totalPoints,        bar: 'from-amber-400 to-amber-600',   valCls: 'text-amber-300' },
+              { label: 'Placar exato',   value: myRank.exactScores,        bar: 'from-emerald-500 to-emerald-700', valCls: 'text-emerald-300' },
+              { label: 'Resultado certo',value: myRank.correctResults,     bar: 'from-cyan-500 to-cyan-700',     valCls: 'text-cyan-300' },
+            ].map(({ label, value, bar, valCls }) => (
+              <Card key={label} className="relative overflow-hidden">
+                <div className={`absolute top-0 inset-x-0 h-0.5 bg-gradient-to-r ${bar}`} />
                 <CardContent className="pt-4 pb-4">
                   <div className="text-xs text-slate-500 mb-1">{label}</div>
-                  <div className="text-xl font-bold text-slate-100">{value}</div>
+                  <div className={`text-xl font-bold ${valCls}`}>{value}</div>
                 </CardContent>
               </Card>
             ))}

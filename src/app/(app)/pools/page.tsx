@@ -35,8 +35,10 @@ export default async function PoolsPage() {
         {pools.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
-              <Trophy size={40} className="mx-auto mb-4 text-slate-700" />
-              <h3 className="text-lg font-semibold text-slate-300 mb-2">Nenhum bolão ainda</h3>
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-slate-800 border border-slate-700">
+                <Trophy size={26} className="text-slate-500" />
+              </div>
+              <h3 className="text-base font-semibold text-slate-300 mb-2">Nenhum bolão ainda</h3>
               <p className="text-slate-500 mb-6 text-sm">Crie um bolão ou peça um convite para participar</p>
               <Link href="/pools/new">
                 <Button>
@@ -49,9 +51,9 @@ export default async function PoolsPage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {pools.map((pool) => (
               <Link key={pool.id} href={`/pools/${pool.id}`}>
-                <Card className="h-full hover:border-slate-700 transition-colors cursor-pointer group">
+                <Card className="h-full cursor-pointer group hover:-translate-y-0.5 hover:border-slate-700 hover:shadow-depth-lg">
                   <CardContent className="pt-5 h-full flex flex-col">
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-start justify-between mb-2">
                       <h3 className="font-semibold text-slate-100 leading-tight group-hover:text-brand-300 transition-colors">
                         {pool.name}
                       </h3>
@@ -74,10 +76,10 @@ export default async function PoolsPage() {
                           <Users size={11} /> {pool._count.participants}
                         </span>
                         <span className="flex items-center gap-1">
-                          <Trophy size={11} /> {pool._count.rounds}
+                          <Trophy size={11} /> {pool._count.rounds} rodadas
                         </span>
                       </div>
-                      <span>{formatDate(pool.createdAt)}</span>
+                      <span className="text-slate-600">{formatDate(pool.createdAt)}</span>
                     </div>
 
                     <div className="flex items-center gap-1 text-xs text-brand-500 group-hover:text-brand-400 mt-2 transition-colors">

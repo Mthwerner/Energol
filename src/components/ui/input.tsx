@@ -26,10 +26,10 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           className={cn(
             'h-10 rounded-lg border bg-slate-900 px-3 text-sm text-slate-100',
             'placeholder:text-slate-500',
-            'focus:outline-none focus:ring-2 focus:ring-brand-500',
-            'transition-colors',
+            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:shadow-glow-sm',
+            'transition-all duration-150',
             error
-              ? 'border-red-500 focus:ring-red-500'
+              ? 'border-red-500 focus:ring-red-500 focus:shadow-[0_0_10px_-2px_rgba(239,68,68,0.3)]'
               : 'border-slate-700 hover:border-slate-600',
             className,
           )}

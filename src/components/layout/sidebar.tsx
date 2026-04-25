@@ -22,7 +22,7 @@ export function Sidebar() {
         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 shadow-glow-sm">
           <Zap size={16} className="text-white" />
         </div>
-        <span className="text-lg font-bold text-slate-100 tracking-tight">Energol</span>
+        <span className="text-lg font-bold tracking-tight text-gradient">Energol</span>
       </div>
 
       {/* Navigation */}
