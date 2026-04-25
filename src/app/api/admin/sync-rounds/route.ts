@@ -113,8 +113,8 @@ export async function POST(req: NextRequest) {
       if (existing) roundsUpdated++; else roundsCreated++;
 
       for (const m of matches) {
-        const homeTeam = m.homeTeam?.name ?? 'A definir';
-        const awayTeam = m.awayTeam?.name ?? 'A definir';
+        const homeTeam = m.homeTeam?.shortName ?? m.homeTeam?.name ?? 'A definir';
+        const awayTeam = m.awayTeam?.shortName ?? m.awayTeam?.name ?? 'A definir';
         const homeCrest = m.homeTeam?.crest ?? null;
         const awayCrest = m.awayTeam?.crest ?? null;
         const matchDate = new Date(m.utcDate);

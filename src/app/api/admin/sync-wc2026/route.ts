@@ -47,8 +47,8 @@ export async function POST() {
       if (!game) { skipped++; continue; }
 
       const newStatus  = toGameStatus(m.status) as GameStatus;
-      const homeTeam   = m.homeTeam?.name ?? game.homeTeam;
-      const awayTeam   = m.awayTeam?.name ?? game.awayTeam;
+      const homeTeam   = m.homeTeam?.shortName ?? m.homeTeam?.name ?? game.homeTeam;
+      const awayTeam   = m.awayTeam?.shortName ?? m.awayTeam?.name ?? game.awayTeam;
       const homeCrest  = m.homeTeam?.crest ?? game.homeCrest;
       const awayCrest  = m.awayTeam?.crest ?? game.awayCrest;
       const matchDate  = new Date(m.utcDate);
