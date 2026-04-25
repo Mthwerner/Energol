@@ -3,7 +3,9 @@ export interface RankingEntry {
   name: string;
   totalPoints: number;
   exactScores: number;
+  resultDiffScores: number;
   correctResults: number;
+  oneScores: number;
   roundsPlayed: number;
   position: number;
   previousPosition?: number;
