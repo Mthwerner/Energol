@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ─────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum InviteStatus {
+  PENDING
+  USED
+  EXPIRED
+}
+
+enum RoundStatus {
+  OPEN
+  CLOSED
+  FINISHED
+}
+
+enum GameStatus {
+  SCHEDULED
+  LIVE
+  FINISHED
+  CANCELLED
+}
+
+// ─── Models ────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownedPools   Pool[]        @relation("PoolOwner")
+  participants Participant[]
+  predictions  Prediction[]
+  invitesSent  Invite[]      @relation("InviteSender")
+}
+
+model Pool {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  ownerId     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  owner        User          @relation("PoolOwner", fields: [ownerId], references: [id])
+  participants Participant[]
+  invites      Invite[]
+  rounds       Round[]
+}
+
+model Participant {
+  id       String   @id @default(cuid())
+  userId   String
+  poolId   String
+  joinedAt DateTime @default(now())
+  isActive Boolean  @default(true)
+
+  user   User               @relation(fields: [userId], references: [id])
+  pool   Pool               @relation(fields: [poolId], references: [id])
+  scores ParticipantScore[]
+
+  @@unique([userId, poolId])
+}
+
+model Invite {
+  id        String       @id @default(cuid())
+  token     String       @unique
+  poolId    String
+  senderId  String
+  email     String?
+  status    InviteStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+  usedAt    DateTime?
+
+  pool   Pool @relation(fields: [poolId], references: [id])
+  sender User @relation("InviteSender", fields: [senderId], references: [id])
+}
+
+model Round {
+  id        String      @id @default(cuid())
+  poolId    String
+  number    Int
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    RoundStatus @default(OPEN)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  pool   Pool               @relation(fields: [poolId], references: [id])
+  games  Game[]
+  scores ParticipantScore[]
+
+  @@unique([poolId, number])
+}
+
+model Game {
+  id        String     @id @default(cuid())
+  roundId   String
+  homeTeam  String
+  awayTeam  String
+  homeCrest String?
+  awayCrest String?
+  matchDate DateTime
+  homeScore Int?
+  awayScore Int?
+  status    GameStatus @default(SCHEDULED)
+  externalId Int?      @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  round       Round                 @relation(fields: [roundId], references: [id])
+  predictions Prediction[]
+  corrections ResultCorrectionLog[]
+}
+
+model Prediction {
+  id        String   @id @default(cuid())
+  userId    String
+  gameId    String
+  homeScore Int
+  awayScore Int
+  points    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  game Game @relation(fields: [gameId], references: [id])
+
+  @@unique([userId, gameId])
+}
+
+model ParticipantScore {
+  id             String   @id @default(cuid())
+  participantId  String
+  roundId        String
+  totalPoints    Int      @default(0)
+  exactScores    Int      @default(0)
+  correctResults Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  participant Participant @relation(fields: [participantId], references: [id])
+  round       Round       @relation(fields: [roundId], references: [id])
+
+  @@unique([participantId, roundId])
+}
+
+model ResultCorrectionLog {
+  id          String   @id @default(cuid())
+  gameId      String
+  correctedBy String
+  oldHome     Int?
+  oldAway     Int?
+  newHome     Int
+  newAway     Int
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  game Game @relation(fields: [gameId], references: [id])
+}
