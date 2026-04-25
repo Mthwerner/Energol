@@ -152,7 +152,7 @@ export default async function PoolPage({ params }: Props) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {ranking.slice(0, 5).map((entry) => (
+                    {ranking.map((entry) => (
                       <TableRow key={entry.userId} className={entry.userId === session.user.id ? 'bg-brand-950/30' : ''}>
                         <TableCell className="font-medium text-slate-400">{entry.position}</TableCell>
                         <TableCell className={entry.userId === session.user.id ? 'text-brand-300 font-medium' : ''}>{entry.name}</TableCell>
