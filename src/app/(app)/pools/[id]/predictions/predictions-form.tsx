@@ -5,6 +5,7 @@ import { Save, Check, Lock, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatDateTime } from '@/lib/utils';
+import { findOdds, type OddsEvent } from '@/lib/odds';
 
 const CUTOFF_MS = 60 * 60 * 1000;
 
@@ -42,9 +43,10 @@ interface Props {
   poolId: string;
   games: Game[];
   initialPredictions: Record<string, { homeScore: number; awayScore: number }>;
+  oddsEvents?: OddsEvent[];
 }
 
-export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
+export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents = [] }: Props) {
   const [predictions, setPredictions] = useState<Record<string, { home: string; away: string }>>(() => {
     const init: Record<string, { home: string; away: string }> = {};
     for (const [gameId, p] of Object.entries(initialPredictions)) {
@@ -212,6 +214,8 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
                 const deadline = getDeadlineLabel(game.matchDate);
                 const urgent = new Date(game.matchDate).getTime() - Date.now() < 3 * 3600000;
 
+                const odds = findOdds(oddsEvents, game.homeTeam, game.awayTeam);
+
                 return (
                   <div
                     key={game.id}
@@ -223,6 +227,25 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
                         {formatDateTime(game.matchDate)} · {deadline}
                       </span>
                     </div>
+
+                    {/* Odds */}
+                    {odds && (
+                      <div className="flex justify-center gap-3 mb-2.5">
+                        <span className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-slate-600 uppercase tracking-wide">1</span>
+                          <span className="text-xs font-semibold text-emerald-400">{odds.home.toFixed(2)}</span>
+                        </span>
+                        <span className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-slate-600 uppercase tracking-wide">X</span>
+                          <span className="text-xs font-semibold text-slate-400">{odds.draw.toFixed(2)}</span>
+                        </span>
+                        <span className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-slate-600 uppercase tracking-wide">2</span>
+                          <span className="text-xs font-semibold text-sky-400">{odds.away.toFixed(2)}</span>
+                        </span>
+                        <span className="flex items-end pb-0.5 text-[9px] text-slate-700">{odds.bookmaker}</span>
+                      </div>
+                    )}
 
                     {/* Home team row */}
                     <div className="flex items-center gap-2">

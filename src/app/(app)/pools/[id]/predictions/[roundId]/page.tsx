@@ -4,6 +4,7 @@ import { auth } from '@/lib/auth';
 import { getPool, isParticipant } from '@/services/pool.service';
 import { getRound } from '@/services/round.service';
 import { getUserPredictionsForRound } from '@/services/prediction.service';
+import { fetchOddsEvents, type OddsEvent } from '@/lib/odds';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { RoundStatusBadge } from '@/components/ui/badge';
@@ -44,6 +45,14 @@ export default async function RoundPredictionsPage({ params }: Props) {
     pointsMap[p.gameId] = p.points;
   }
 
+  // Fetch odds only for open rounds (no point showing odds for finished games)
+  let oddsEvents: OddsEvent[] = [];
+  if (round.status === 'OPEN') {
+    const isWC = round.games.some((g) => g.group);
+    const sportKey = isWC ? 'soccer_fifa_world_cup' : 'soccer_brazil_campeonato';
+    oddsEvents = await fetchOddsEvents(sportKey);
+  }
+
   return (
     <div>
       <Header
@@ -66,6 +75,7 @@ export default async function RoundPredictionsPage({ params }: Props) {
             poolId={id}
             games={round.games}
             initialPredictions={predMap}
+            oddsEvents={oddsEvents}
           />
         ) : (
           <RoundResults
