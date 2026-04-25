@@ -14,7 +14,10 @@
     "db:reset": "prisma db push --force-reset && prisma db seed",
     "db:seed-wc2026": "prisma db push && tsx prisma/seed-wc2026.ts",
     "db:seed-test": "tsx prisma/seed-test.ts",
-    "db:seed-brasileirao2026": "tsx prisma/seed-brasileirao2026.ts"
+    "db:seed-brasileirao2026": "tsx prisma/seed-brasileirao2026.ts",
+    "sync:brasileirao": "tsx prisma/sync-results.ts brasileirao",
+    "sync:copa": "tsx prisma/sync-results.ts copa",
+    "sync:all": "tsx prisma/sync-results.ts all"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
