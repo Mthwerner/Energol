@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { InviteButton } from './invite-button';
 import { PoolRoundsSection } from './pool-rounds-section';
+import { DeletePoolButton } from './delete-pool-button';
 import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -90,6 +91,7 @@ export default async function PoolPage({ params }: Props) {
                 </Button>
               </Link>
             )}
+            {owner && <DeletePoolButton poolId={id} poolName={pool.name} />}
           </div>
         }
       />
