@@ -150,6 +150,44 @@ export async function fetchBR2026Matches(): Promise<FDMatch[]> {
   return data.matches;
 }
 
+// ─── Standings ───────────────────────────────────────────────────────────────
+
+export interface FDStandingEntry {
+  position: number;
+  team: Pick<FDTeam, 'id' | 'name' | 'shortName' | 'crest'>;
+  playedGames: number;
+  won: number;
+  draw: number;
+  lost: number;
+  points: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  form: string | null;
+}
+
+export interface FDStandingTable {
+  stage: string;
+  type: 'TOTAL' | 'HOME' | 'AWAY';
+  group: string | null;
+  table: FDStandingEntry[];
+}
+
+export async function fetchStandings(competition: 'BSA' | 'WC'): Promise<FDStandingTable[]> {
+  const res = await fetch(`${BASE_URL}/competitions/${competition}/standings`, {
+    headers: headers(),
+    next: { revalidate: 1800 }, // cache 30 min
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`football-data.org ${res.status}: ${body}`);
+  }
+
+  const data = await res.json() as { standings: FDStandingTable[] };
+  return data.standings;
+}
+
 /** Data mínima de uma lista de partidas */
 export function minDate(matches: FDMatch[]): Date {
   return new Date(Math.min(...matches.map((m) => new Date(m.utcDate).getTime())));
