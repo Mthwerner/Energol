@@ -166,61 +166,52 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2 md:gap-3">
-                  {/* Home team */}
-                  <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-                    <div className="text-right min-w-0">
-                      <div className="text-sm font-semibold text-slate-100 truncate">{game.homeTeam}</div>
-                    </div>
-                    {game.homeCrest ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={game.homeCrest} alt={game.homeTeam} className="h-9 w-9 object-contain shrink-0" />
-                    ) : (
-                      <div className="h-9 w-9 rounded-full bg-slate-800 shrink-0" />
-                    )}
-                  </div>
+                {/* Home team row */}
+                <div className="flex items-center gap-2">
+                  {game.homeCrest ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={game.homeCrest} alt={game.homeTeam} className="h-8 w-8 object-contain shrink-0" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                  )}
+                  <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0">{game.homeTeam}</span>
+                  <input
+                    ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={99}
+                    value={p.home}
+                    onChange={(e) => set(game.id, 'home', e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="–"
+                    className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
+                      ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
+                  />
+                </div>
 
-                  {/* Score inputs */}
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <input
-                      ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={99}
-                      value={p.home}
-                      onChange={(e) => set(game.id, 'home', e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                      placeholder="–"
-                      className={`w-12 h-12 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
-                        ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
-                    />
-                    <span className="text-slate-600 font-bold text-sm">×</span>
-                    <input
-                      ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={99}
-                      value={p.away}
-                      onChange={(e) => set(game.id, 'away', e.target.value)}
-                      onFocus={(e) => e.target.select()}
-                      placeholder="–"
-                      className={`w-12 h-12 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
-                        ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
-                    />
-                  </div>
-
-                  {/* Away team */}
-                  <div className="flex-1 flex items-center justify-start gap-2 min-w-0">
-                    {game.awayCrest ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={game.awayCrest} alt={game.awayTeam} className="h-9 w-9 object-contain shrink-0" />
-                    ) : (
-                      <div className="h-9 w-9 rounded-full bg-slate-800 shrink-0" />
-                    )}
-                    <div className="text-sm font-semibold text-slate-100 truncate">{game.awayTeam}</div>
-                  </div>
+                {/* Away team row */}
+                <div className="flex items-center gap-2 mt-2">
+                  {game.awayCrest ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={game.awayCrest} alt={game.awayTeam} className="h-8 w-8 object-contain shrink-0" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                  )}
+                  <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0">{game.awayTeam}</span>
+                  <input
+                    ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={99}
+                    value={p.away}
+                    onChange={(e) => set(game.id, 'away', e.target.value)}
+                    onFocus={(e) => e.target.select()}
+                    placeholder="–"
+                    className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
+                      ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
+                  />
                 </div>
               </div>
             );
