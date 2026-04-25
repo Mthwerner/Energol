@@ -40,7 +40,7 @@ export default async function ParticipantsPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <ParticipantsManager
           poolId={id}
           initialParticipants={participants}

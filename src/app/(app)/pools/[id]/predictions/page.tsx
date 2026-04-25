@@ -40,7 +40,7 @@ export default async function PredictionsPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="p-6 space-y-3">
+      <div className="p-4 md:p-6 space-y-3">
         {rounds.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-slate-500">

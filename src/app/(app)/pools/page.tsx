@@ -31,7 +31,7 @@ export default async function PoolsPage() {
         }
       />
 
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         {pools.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">

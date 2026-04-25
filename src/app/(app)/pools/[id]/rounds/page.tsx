@@ -40,7 +40,7 @@ export default async function RoundsPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="p-6">
+      <div className="p-4 md:p-6">
         <RoundsManager poolId={id} initialRounds={rounds} />
       </div>
     </div>
