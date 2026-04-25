@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { InviteButton } from './invite-button';
 import { PoolRoundsSection } from './pool-rounds-section';
-import { Users, Trophy, Target, Settings, ArrowRight, UserMinus } from 'lucide-react';
+import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -70,6 +70,11 @@ export default async function PoolPage({ params }: Props) {
         description={pool.description ?? undefined}
         actions={
           <div className="flex items-center gap-2">
+            <Link href={`/pools/${id}/rules`}>
+              <Button variant="ghost" size="sm">
+                <BookOpen size={14} /> Regras
+              </Button>
+            </Link>
             {owner && <InviteButton poolId={id} />}
             {owner && (
               <Link href={`/pools/${id}/participants`}>

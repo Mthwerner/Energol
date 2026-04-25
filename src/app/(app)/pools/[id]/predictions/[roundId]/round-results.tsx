@@ -21,9 +21,11 @@ interface Props {
 }
 
 const resultConfig = {
-  EXACT:  { label: 'Placar exato',     pts: 10, color: 'text-emerald-400', border: 'border-l-emerald-600', bg: 'bg-emerald-950/30' },
-  RESULT: { label: 'Resultado certo',  pts: 5,  color: 'text-amber-400',   border: 'border-l-amber-600',   bg: 'bg-amber-950/30'   },
-  MISS:   { label: 'Errou',            pts: 0,  color: 'text-red-400',     border: 'border-l-red-800',     bg: 'bg-red-950/20'     },
+  EXACT:       { label: 'Placar exato',          pts: 10, color: 'text-emerald-400', border: 'border-l-emerald-600', bg: 'bg-emerald-950/30' },
+  RESULT_DIFF: { label: 'Resultado + saldo',     pts: 7,  color: 'text-cyan-400',    border: 'border-l-cyan-700',    bg: 'bg-cyan-950/20'    },
+  RESULT:      { label: 'Resultado certo',       pts: 5,  color: 'text-amber-400',   border: 'border-l-amber-600',   bg: 'bg-amber-950/30'   },
+  ONE_SCORE:   { label: 'Um placar certo',       pts: 3,  color: 'text-purple-400',  border: 'border-l-purple-700',  bg: 'bg-purple-950/20'  },
+  MISS:        { label: 'Errou',                 pts: 0,  color: 'text-red-400',     border: 'border-l-red-800',     bg: 'bg-red-950/20'     },
 };
 
 export function RoundResults({ games, predictions, predictionPoints }: Props) {
@@ -39,11 +41,15 @@ export function RoundResults({ games, predictions, predictionPoints }: Props) {
     finishedCount++;
     const stored = predictionPoints[game.id];
     let points: number;
-    let type: 'EXACT' | 'RESULT' | 'MISS';
+    let type: keyof typeof resultConfig;
 
     if (stored !== null && stored !== undefined) {
       points = stored;
-      type = points === 10 ? 'EXACT' : points === 5 ? 'RESULT' : 'MISS';
+      if      (points === 10) type = 'EXACT';
+      else if (points === 7)  type = 'RESULT_DIFF';
+      else if (points === 5)  type = 'RESULT';
+      else if (points === 3)  type = 'ONE_SCORE';
+      else                    type = 'MISS';
     } else {
       const calc = calculateScore(pred, { homeScore: game.homeScore!, awayScore: game.awayScore! });
       points = calc.points;

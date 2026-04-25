@@ -84,7 +84,7 @@ async function recalculateRoundScores(
     const userPreds = predictions.filter((p) => p.userId === participant.userId);
     const totalPoints = userPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
     const exactScores = userPreds.filter((p) => p.points === 10).length;
-    const correctResults = userPreds.filter((p) => p.points === 5).length;
+    const correctResults = userPreds.filter((p) => p.points === 5 || p.points === 7).length;
 
     await tx.participantScore.upsert({
       where: { participantId_roundId: { participantId: participant.id, roundId } },
