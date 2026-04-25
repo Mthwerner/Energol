@@ -12,13 +12,24 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading, disabled, children, ...props }, ref) => {
     const base =
-      'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-50';
+      'inline-flex items-center justify-center gap-2 font-medium rounded-lg ' +
+      'transition-all duration-150 ' +
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ' +
+      'disabled:pointer-events-none disabled:opacity-50 ' +
+      'active:scale-[0.97]';
 
     const variants = {
-      primary: 'bg-brand-600 text-white hover:bg-brand-500 active:bg-brand-700',
-      secondary: 'bg-slate-800 text-slate-100 hover:bg-slate-700 border border-slate-700',
-      ghost: 'text-slate-400 hover:text-slate-100 hover:bg-slate-800',
-      danger: 'bg-red-700 text-white hover:bg-red-600',
+      primary:
+        'bg-brand-600 text-white hover:bg-brand-500 active:bg-brand-700 ' +
+        'shadow-glow-sm hover:shadow-glow-brand',
+      secondary:
+        'bg-slate-800 text-slate-100 hover:bg-slate-700 border border-slate-700 ' +
+        'hover:border-slate-600',
+      ghost:
+        'text-slate-400 hover:text-slate-100 hover:bg-slate-800',
+      danger:
+        'bg-red-700 text-white hover:bg-red-600 ' +
+        'shadow-[0_0_14px_-4px_rgba(185,28,28,0.4)] hover:shadow-[0_0_18px_-4px_rgba(185,28,28,0.55)]',
     };
 
     const sizes = {

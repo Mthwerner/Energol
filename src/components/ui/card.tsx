@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils';
 function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn('rounded-xl border border-slate-800 bg-slate-900', className)}
+      className={cn(
+        'rounded-xl border border-slate-800 bg-slate-900 shadow-depth',
+        'transition-all duration-200',
+        className,
+      )}
       {...props}
     />
   );

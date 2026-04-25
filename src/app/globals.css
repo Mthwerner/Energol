@@ -18,28 +18,48 @@ body {
   min-height: 100dvh;
 }
 
+/* ── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   @apply bg-slate-950;
 }
-
 ::-webkit-scrollbar-thumb {
   @apply bg-slate-700 rounded-full;
 }
-
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-slate-600;
 }
 
-/* Score input arrows removed */
+/* ── Score input arrows removed ─────────────────────────────────────── */
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 input[type=number] {
   -moz-appearance: textfield;
+}
+
+/* ── Respect reduced-motion preference ──────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Page content entry animation ───────────────────────────────────── */
+.page-enter > * {
+  animation: fade-in 0.25s ease-out both;
+}
+.page-enter > *:nth-child(2) { animation-delay: 0.05s; }
+.page-enter > *:nth-child(3) { animation-delay: 0.10s; }
+.page-enter > *:nth-child(4) { animation-delay: 0.15s; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
