@@ -57,21 +57,26 @@ export default function NewPoolPage() {
     setLoading(true);
     setServerError('');
 
-    const res = await fetch('/api/pools/clone', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sourcePoolId: selected, name: name.trim() }),
-    });
+    try {
+      const res = await fetch('/api/pools/clone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sourcePoolId: selected, name: name.trim() }),
+      });
 
-    const data = await res.json();
-    setLoading(false);
+      const data = await res.json();
 
-    if (!res.ok) {
-      setServerError(data.error ?? 'Erro ao criar bolão');
-      return;
+      if (!res.ok) {
+        setServerError(data.error ?? 'Erro ao criar bolão');
+        return;
+      }
+
+      router.push(`/pools/${data.id}`);
+    } catch {
+      setServerError('Erro de conexão. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
-
-    router.push(`/pools/${data.id}`);
   };
 
   return (

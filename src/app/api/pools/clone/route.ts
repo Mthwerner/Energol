@@ -45,54 +45,58 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Bolão template não encontrado' }, { status: 404 });
   }
 
-  const newPool = await prisma.$transaction(async (tx) => {
-    // Criar o novo bolão
-    const pool = await tx.pool.create({
-      data: {
-        name,
-        description: source.description ?? undefined,
-        ownerId: session.user.id,
-      },
-    });
-
-    // Dono vira participante automaticamente
-    await tx.participant.create({
-      data: { userId: session.user.id, poolId: pool.id },
-    });
-
-    // Copiar rodadas e jogos
-    for (const round of source.rounds) {
-      const newRound = await tx.round.create({
-        data: {
-          poolId:    pool.id,
-          number:    round.number,
-          name:      round.name,
-          startDate: round.startDate,
-          endDate:   round.endDate,
-          status:    round.status,
-        },
-      });
-
-      if (round.games.length > 0) {
-        await tx.game.createMany({
-          data: round.games.map((g) => ({
-            roundId:    newRound.id,
-            externalId: null,          // sem vínculo com API externa
-            homeTeam:   g.homeTeam,
-            awayTeam:   g.awayTeam,
-            homeCrest:  g.homeCrest,
-            awayCrest:  g.awayCrest,
-            matchDate:  g.matchDate,
-            homeScore:  g.homeScore,
-            awayScore:  g.awayScore,
-            status:     g.status,
-          })),
+  try {
+    const newPool = await prisma.$transaction(
+      async (tx) => {
+        const pool = await tx.pool.create({
+          data: {
+            name,
+            description: source.description ?? undefined,
+            ownerId: session.user.id,
+          },
         });
-      }
-    }
 
-    return pool;
-  });
+        await tx.participant.create({
+          data: { userId: session.user.id, poolId: pool.id },
+        });
 
-  return NextResponse.json(newPool, { status: 201 });
+        for (const round of source.rounds) {
+          const newRound = await tx.round.create({
+            data: {
+              poolId:    pool.id,
+              number:    round.number,
+              name:      round.name,
+              startDate: round.startDate,
+              endDate:   round.endDate,
+              status:    round.status,
+            },
+          });
+
+          if (round.games.length > 0) {
+            await tx.game.createMany({
+              data: round.games.map((g) => ({
+                roundId:    newRound.id,
+                homeTeam:   g.homeTeam,
+                awayTeam:   g.awayTeam,
+                homeCrest:  g.homeCrest,
+                awayCrest:  g.awayCrest,
+                matchDate:  g.matchDate,
+                homeScore:  g.homeScore,
+                awayScore:  g.awayScore,
+                status:     g.status,
+              })),
+            });
+          }
+        }
+
+        return pool;
+      },
+      { timeout: 30000 },
+    );
+
+    return NextResponse.json(newPool, { status: 201 });
+  } catch (err) {
+    console.error('[clone]', err);
+    return NextResponse.json({ error: 'Erro interno ao criar bolão' }, { status: 500 });
+  }
 }
