@@ -3,12 +3,13 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { getPool, isParticipant } from '@/services/pool.service';
-import { getPoolRanking } from '@/services/ranking.service';
+import { getPoolRanking, getPendingPredictionsAlert } from '@/services/ranking.service';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Medal } from 'lucide-react';
+import { ArrowLeft, Medal, Bell, Clock } from 'lucide-react';
+import { formatShortDateTime } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Classificação' };
 
@@ -19,16 +20,32 @@ export default async function RankingPage({ params }: Props) {
   if (!session) redirect('/login');
 
   const { id } = await params;
-  const [pool, member, ranking] = await Promise.all([
+  const [pool, member, ranking, pendingAlert] = await Promise.all([
     getPool(id),
     isParticipant(session.user.id, id),
     getPoolRanking(id),
+    getPendingPredictionsAlert(id),
   ]);
 
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect(`/pools/${id}`);
 
   const medalColors = ['text-amber-400', 'text-slate-300', 'text-amber-700'];
+
+  // Calcula tempo restante legível
+  function timeRemaining(endDate: Date): string {
+    const diff = new Date(endDate).getTime() - Date.now();
+    if (diff <= 0) return 'encerrado';
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    if (hours >= 24) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${minutes}min`;
+    return `${minutes}min`;
+  }
+
+  const isUrgent = pendingAlert
+    ? new Date(pendingAlert.roundEndDate).getTime() - Date.now() < 12 * 3600000
+    : false;
 
   return (
     <div>
@@ -45,6 +62,65 @@ export default async function RankingPage({ params }: Props) {
       />
 
       <div className="p-4 md:p-6 space-y-4">
+
+        {/* Pending predictions alert */}
+        {pendingAlert && (
+          <div className={`rounded-xl border p-4 ${
+            isUrgent
+              ? 'border-amber-700 bg-amber-950/40'
+              : 'border-slate-700 bg-slate-900'
+          }`}>
+            <div className="flex items-start gap-3">
+              <div className={`shrink-0 mt-0.5 ${isUrgent ? 'text-amber-400' : 'text-slate-400'}`}>
+                {isUrgent ? <Bell size={16} /> : <Clock size={16} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mb-2">
+                  <span className={`text-sm font-semibold ${isUrgent ? 'text-amber-300' : 'text-slate-200'}`}>
+                    {pendingAlert.pending.length} participante{pendingAlert.pending.length !== 1 ? 's' : ''} sem palpite
+                  </span>
+                  <span className={`text-xs ${isUrgent ? 'text-amber-500' : 'text-slate-500'}`}>
+                    · {pendingAlert.roundName}
+                  </span>
+                  <span className={`text-xs font-medium ${isUrgent ? 'text-amber-400' : 'text-slate-400'}`}>
+                    · fecha em {timeRemaining(pendingAlert.roundEndDate)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {pendingAlert.pending.map((p) => (
+                    <span
+                      key={p.userId}
+                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium border ${
+                        p.userId === session.user.id
+                          ? isUrgent
+                            ? 'bg-amber-900/60 border-amber-700 text-amber-200'
+                            : 'bg-brand-900/60 border-brand-700 text-brand-200'
+                          : isUrgent
+                            ? 'bg-amber-950/40 border-amber-800/60 text-amber-300'
+                            : 'bg-slate-800 border-slate-700 text-slate-300'
+                      }`}
+                    >
+                      {p.name}{p.userId === session.user.id ? ' (você)' : ''}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* CTA for the current user if they're in the pending list */}
+            {pendingAlert.pending.some((p) => p.userId === session.user.id) && (
+              <div className="mt-3 pl-7">
+                <Link href={`/pools/${id}/predictions`}>
+                  <Button size="sm" variant={isUrgent ? 'primary' : 'secondary'}>
+                    Fazer meus palpites →
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Ranking table */}
         <Card>
           <CardContent className="p-0">
             {ranking.length === 0 ? (
@@ -59,7 +135,6 @@ export default async function RankingPage({ params }: Props) {
                   <TableRow>
                     <TableHead className="w-10">#</TableHead>
                     <TableHead>Participante</TableHead>
-                    {/* Tiers — visible progressively */}
                     <TableHead className="text-center hidden sm:table-cell w-14" title="Placar exato (10 pts)">
                       <span className="text-emerald-500">10</span>
                     </TableHead>
@@ -79,9 +154,13 @@ export default async function RankingPage({ params }: Props) {
                 <TableBody>
                   {ranking.map((entry) => {
                     const isMe = entry.userId === session.user.id;
+                    const isPending = pendingAlert?.pending.some((p) => p.userId === entry.userId);
                     const medal = entry.position <= 3 ? entry.position - 1 : -1;
                     return (
-                      <TableRow key={entry.userId} className={isMe ? 'bg-brand-950/20' : ''}>
+                      <TableRow
+                        key={entry.userId}
+                        className={isMe ? 'bg-brand-950/20' : ''}
+                      >
                         <TableCell className="font-medium">
                           {medal >= 0 ? (
                             <Medal size={16} className={medalColors[medal]} />
@@ -91,11 +170,21 @@ export default async function RankingPage({ params }: Props) {
                         </TableCell>
 
                         <TableCell>
-                          <span className={isMe ? 'font-semibold text-brand-300' : 'text-slate-200'}>
-                            {entry.name}
-                            {isMe && <span className="ml-1.5 text-xs text-slate-500">(você)</span>}
-                          </span>
-                          {/* Mobile: mini stats below name */}
+                          <div className="flex items-center gap-2">
+                            <span className={isMe ? 'font-semibold text-brand-300' : 'text-slate-200'}>
+                              {entry.name}
+                              {isMe && <span className="ml-1.5 text-xs text-slate-500">(você)</span>}
+                            </span>
+                            {isPending && (
+                              <span className={`shrink-0 text-xs px-1.5 py-0.5 rounded-full border ${
+                                isUrgent
+                                  ? 'text-amber-400 border-amber-800 bg-amber-950/40'
+                                  : 'text-slate-500 border-slate-700 bg-slate-800'
+                              }`}>
+                                sem palpite
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2 mt-0.5 sm:hidden text-xs text-slate-500">
                             <span className="text-emerald-500">{entry.exactScores}×</span>
                             <span className="text-amber-500">{entry.correctResults}×</span>
@@ -108,29 +197,24 @@ export default async function RankingPage({ params }: Props) {
                             {entry.exactScores}
                           </span>
                         </TableCell>
-
                         <TableCell className="text-center hidden md:table-cell">
                           <span className={entry.resultDiffScores > 0 ? 'font-semibold text-cyan-400' : 'text-slate-600'}>
                             {entry.resultDiffScores}
                           </span>
                         </TableCell>
-
                         <TableCell className="text-center hidden sm:table-cell">
                           <span className={entry.correctResults > 0 ? 'font-semibold text-amber-400' : 'text-slate-600'}>
                             {entry.correctResults}
                           </span>
                         </TableCell>
-
                         <TableCell className="text-center hidden md:table-cell">
                           <span className={entry.oneScores > 0 ? 'font-semibold text-purple-400' : 'text-slate-600'}>
                             {entry.oneScores}
                           </span>
                         </TableCell>
-
                         <TableCell className="text-center hidden lg:table-cell text-slate-400">
                           {entry.roundsPlayed}
                         </TableCell>
-
                         <TableCell className="text-right font-bold text-slate-100 text-base">
                           {entry.totalPoints}
                         </TableCell>

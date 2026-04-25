@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/prisma';
 import { buildRanking } from '@/domain/ranking';
 
+export interface PendingAlert {
+  roundName: string;
+  roundEndDate: Date;
+  pending: { userId: string; name: string }[];
+}
+
 export async function getPoolRanking(poolId: string) {
   const participants = await prisma.participant.findMany({
     where: { poolId, isActive: true },
@@ -93,4 +99,47 @@ export async function getRoundRanking(roundId: string) {
       oneScores:       t[3]  ?? 0,
     };
   });
+}
+
+export async function getPendingPredictionsAlert(poolId: string): Promise<PendingAlert | null> {
+  const now = new Date();
+
+  // Rodada mais próxima de fechar (menor endDate ainda no futuro)
+  const round = await prisma.round.findFirst({
+    where: { poolId, status: 'OPEN', endDate: { gt: now } },
+    orderBy: { endDate: 'asc' },
+    include: { games: { select: { id: true } } },
+  });
+
+  if (!round || round.games.length === 0) return null;
+
+  const gameIds = round.games.map((g) => g.id);
+
+  // Participantes ativos do bolão
+  const participants = await prisma.participant.findMany({
+    where: { poolId, isActive: true },
+    include: { user: { select: { id: true, name: true } } },
+  });
+
+  // Quais participantes têm ao menos 1 palpite nesta rodada
+  const withPrediction = await prisma.prediction.findMany({
+    where: { gameId: { in: gameIds } },
+    select: { userId: true },
+    distinct: ['userId'],
+  });
+
+  const withPredictionIds = new Set(withPrediction.map((p) => p.userId));
+
+  const pending = participants
+    .filter((p) => !withPredictionIds.has(p.user.id))
+    .map((p) => ({ userId: p.user.id, name: p.user.name }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  if (pending.length === 0) return null;
+
+  return {
+    roundName: round.name,
+    roundEndDate: round.endDate,
+    pending,
+  };
 }
