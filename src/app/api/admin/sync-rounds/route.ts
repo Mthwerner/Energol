@@ -161,8 +161,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Invalida o cache da tabela de classificação desta competição
+    // Invalida o cache da tabela de classificação e artilharia
     revalidateTag(competition === 'WC2026' ? 'standings-WC' : 'standings-BSA');
+    revalidateTag(competition === 'WC2026' ? 'scorers-WC' : 'scorers-BSA');
 
     return NextResponse.json({
       ok: true,

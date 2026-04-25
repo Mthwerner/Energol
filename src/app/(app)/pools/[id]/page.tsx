@@ -13,7 +13,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { InviteButton } from './invite-button';
 import { PoolRoundsSection } from './pool-rounds-section';
 import { DeletePoolButton } from './delete-pool-button';
-import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen, BarChart2 } from 'lucide-react';
+import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen, BarChart2, Swords } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -74,6 +74,11 @@ export default async function PoolPage({ params }: Props) {
             <Link href={`/pools/${id}/standings`}>
               <Button variant="ghost" size="sm">
                 <BarChart2 size={14} /> Tabela
+              </Button>
+            </Link>
+            <Link href={`/pools/${id}/scorers`}>
+              <Button variant="ghost" size="sm">
+                <Swords size={14} /> Artilharia
               </Button>
             </Link>
             <Link href={`/pools/${id}/rules`}>

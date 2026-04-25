@@ -188,6 +188,42 @@ export async function fetchStandings(competition: 'BSA' | 'WC'): Promise<FDStand
   return data.standings;
 }
 
+// ─── Scorers ─────────────────────────────────────────────────────────────────
+
+export interface FDScorer {
+  player: {
+    id: number;
+    name: string;
+    firstName: string;
+    lastName: string;
+    nationality: string;
+    section: string;
+  };
+  team: Pick<FDTeam, 'id' | 'name' | 'shortName' | 'crest'>;
+  playedMatches: number;
+  goals: number;
+  assists: number | null;
+  penalties: number | null;
+}
+
+export async function fetchScorers(competition: 'BSA' | 'WC', limit = 20): Promise<FDScorer[]> {
+  const res = await fetch(
+    `${BASE_URL}/competitions/${competition}/scorers?season=2026&limit=${limit}`,
+    {
+      headers: headers(),
+      next: { revalidate: 1800, tags: [`scorers-${competition}`] },
+    },
+  );
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`football-data.org ${res.status}: ${body}`);
+  }
+
+  const data = await res.json() as { scorers: FDScorer[] };
+  return data.scorers;
+}
+
 /** Data mínima de uma lista de partidas */
 export function minDate(matches: FDMatch[]): Date {
   return new Date(Math.min(...matches.map((m) => new Date(m.utcDate).getTime())));

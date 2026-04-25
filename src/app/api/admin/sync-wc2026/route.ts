@@ -81,6 +81,7 @@ export async function POST() {
     }
 
     revalidateTag('standings-WC');
+    revalidateTag('scorers-WC');
 
     return NextResponse.json({
       ok: true,
