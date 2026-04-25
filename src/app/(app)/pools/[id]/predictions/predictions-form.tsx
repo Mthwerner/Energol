@@ -228,78 +228,82 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                       </span>
                     </div>
 
-                    {/* Home team row */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-stretch gap-2">
+                      {/* Odds column */}
                       {odds && (
-                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-emerald-950 border border-emerald-800 text-emerald-400">
-                          <span className="text-[9px] leading-none text-emerald-700 font-medium">1</span>
-                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.home.toFixed(2)}</span>
-                        </span>
+                        <div className="flex flex-col gap-1 shrink-0">
+                          <span className="flex flex-col items-center w-12 py-1 rounded-md bg-emerald-950 border border-emerald-800 text-emerald-400">
+                            <span className="text-[9px] leading-none text-emerald-700 font-medium">1</span>
+                            <span className="text-xs font-bold tabular-nums leading-tight">{odds.home.toFixed(2)}</span>
+                          </span>
+                          <span className="flex flex-col items-center w-12 py-1 rounded-md bg-amber-950 border border-amber-800 text-amber-400">
+                            <span className="text-[9px] leading-none text-amber-700 font-medium">X</span>
+                            <span className="text-xs font-bold tabular-nums leading-tight">{odds.draw.toFixed(2)}</span>
+                          </span>
+                          <span className="flex flex-col items-center w-12 py-1 rounded-md bg-sky-950 border border-sky-800 text-sky-400">
+                            <span className="text-[9px] leading-none text-sky-700 font-medium">2</span>
+                            <span className="text-xs font-bold tabular-nums leading-tight">{odds.away.toFixed(2)}</span>
+                          </span>
+                        </div>
                       )}
-                      {game.homeCrest ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={game.homeCrest} alt={game.homeTeam} className="h-8 w-8 object-contain shrink-0" />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
-                      )}
-                      <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.homeTeam}</span>
-                      <input
-                        ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={99}
-                        value={p.home}
-                        onChange={(e) => set(game.id, 'home', e.target.value)}
-                        onFocus={(e) => e.target.select()}
-                        placeholder="–"
-                        className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
-                          ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
-                      />
-                    </div>
 
-                    {/* Draw / separator */}
-                    <div className="flex items-center gap-2 my-1.5">
-                      <div className="flex-1 h-px bg-slate-800" />
-                      {odds ? (
-                        <span className="shrink-0 flex flex-col items-center w-14 py-1 rounded-md bg-amber-950 border border-amber-800 text-amber-400">
-                          <span className="text-[9px] leading-none text-amber-700 font-medium">empate</span>
-                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.draw.toFixed(2)}</span>
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-700 shrink-0">vs</span>
-                      )}
-                      <div className="flex-1 h-px bg-slate-800" />
-                    </div>
+                      {/* Teams column */}
+                      <div className="flex-1 flex flex-col justify-between gap-1">
+                        {/* Home */}
+                        <div className="flex items-center gap-2">
+                          {game.homeCrest ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={game.homeCrest} alt={game.homeTeam} className="h-8 w-8 object-contain shrink-0" />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                          )}
+                          <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.homeTeam}</span>
+                          <input
+                            ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            max={99}
+                            value={p.home}
+                            onChange={(e) => set(game.id, 'home', e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="–"
+                            className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
+                              ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
+                          />
+                        </div>
 
-                    {/* Away team row */}
-                    <div className="flex items-center gap-2">
-                      {odds && (
-                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-sky-950 border border-sky-800 text-sky-400">
-                          <span className="text-[9px] leading-none text-sky-700 font-medium">2</span>
-                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.away.toFixed(2)}</span>
-                        </span>
-                      )}
-                      {game.awayCrest ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={game.awayCrest} alt={game.awayTeam} className="h-8 w-8 object-contain shrink-0" />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
-                      )}
-                      <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.awayTeam}</span>
-                      <input
-                        ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={99}
-                        value={p.away}
-                        onChange={(e) => set(game.id, 'away', e.target.value)}
-                        onFocus={(e) => e.target.select()}
-                        placeholder="–"
-                        className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
-                          ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
-                      />
+                        {/* Separator */}
+                        <div className="flex items-center gap-2 px-1">
+                          <div className="flex-1 h-px bg-slate-800" />
+                          {!odds && <span className="text-[10px] text-slate-700 shrink-0">vs</span>}
+                          <div className="flex-1 h-px bg-slate-800" />
+                        </div>
+
+                        {/* Away */}
+                        <div className="flex items-center gap-2">
+                          {game.awayCrest ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={game.awayCrest} alt={game.awayTeam} className="h-8 w-8 object-contain shrink-0" />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                          )}
+                          <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.awayTeam}</span>
+                          <input
+                            ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            max={99}
+                            value={p.away}
+                            onChange={(e) => set(game.id, 'away', e.target.value)}
+                            onFocus={(e) => e.target.select()}
+                            placeholder="–"
+                            className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
+                              ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     {odds && (
