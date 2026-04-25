@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth';
 import { getPool, isParticipant, isOwner } from '@/services/pool.service';
 import { listRounds, getRound } from '@/services/round.service';
 import { getPoolRanking } from '@/services/ranking.service';
+import { getUserPredictionsForRound } from '@/services/prediction.service';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,10 +42,24 @@ export default async function PoolPage({ params }: Props) {
   const openRounds = rounds.filter((r) => r.status === 'OPEN' && new Date(r.endDate) > now);
   const finishedRounds = rounds.filter((r) => r.status === 'FINISHED');
 
-  // Rodada mais recente aberta (maior número)
-  const featuredRoundBase = openRounds[openRounds.length - 1] ?? null;
-  const featuredRound = featuredRoundBase ? await getRound(featuredRoundBase.id) : null;
-  const otherOpenRounds = openRounds.slice(0, -1);
+  // Rodada em destaque: a que encerra mais cedo (mais urgente)
+  const featuredRoundBase = openRounds.length > 0
+    ? openRounds.reduce((a, b) => new Date(a.endDate) <= new Date(b.endDate) ? a : b)
+    : null;
+
+  const [featuredRound, featuredPredictions] = featuredRoundBase
+    ? await Promise.all([
+        getRound(featuredRoundBase.id),
+        getUserPredictionsForRound(session.user.id, featuredRoundBase.id),
+      ])
+    : [null, []];
+
+  const predMap: Record<string, { homeScore: number; awayScore: number }> = {};
+  for (const p of featuredPredictions) {
+    predMap[p.gameId] = { homeScore: p.homeScore, awayScore: p.awayScore };
+  }
+
+  const otherOpenRounds = openRounds.filter((r) => r.id !== featuredRoundBase?.id);
 
   const myRank = ranking.find((r) => r.userId === session.user.id);
 
@@ -99,6 +114,7 @@ export default async function PoolPage({ params }: Props) {
           <PoolRoundsSection
             poolId={id}
             featuredRound={featuredRound}
+            featuredPredictions={predMap}
             otherOpenRounds={otherOpenRounds}
             finishedRounds={finishedRounds}
           />
