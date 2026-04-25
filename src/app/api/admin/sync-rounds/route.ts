@@ -119,6 +119,7 @@ export async function POST(req: NextRequest) {
         const awayCrest = m.awayTeam?.crest ?? null;
         const matchDate = new Date(m.utcDate);
         const status = toGameStatus(m.status) as GameStatus;
+        const group = m.group ?? null;
 
         const existingGame = await prisma.game.findUnique({ where: { externalId: m.id } });
 
@@ -142,14 +143,14 @@ export async function POST(req: NextRequest) {
         await prisma.game.upsert({
           where: { externalId: m.id },
           update: {
-            homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status,
+            homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status, group,
             homeScore: status === 'FINISHED' ? m.score.fullTime.home : null,
             awayScore: status === 'FINISHED' ? m.score.fullTime.away : null,
           },
           create: {
             roundId: round.id,
             externalId: m.id,
-            homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status,
+            homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status, group,
             homeScore: status === 'FINISHED' ? m.score.fullTime.home : null,
             awayScore: status === 'FINISHED' ? m.score.fullTime.away : null,
           },

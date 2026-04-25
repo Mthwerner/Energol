@@ -52,6 +52,7 @@ export async function POST() {
       const homeCrest  = m.homeTeam?.crest ?? game.homeCrest;
       const awayCrest  = m.awayTeam?.crest ?? game.awayCrest;
       const matchDate  = new Date(m.utcDate);
+      const group      = m.group ?? null;
 
       // Se o jogo acabou e ainda não temos placar → calcular pontuações
       if (
@@ -72,7 +73,7 @@ export async function POST() {
       // Atualiza metadados (time, emblema, data, status)
       await prisma.game.update({
         where: { id: game.id },
-        data:  { homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status: newStatus },
+        data:  { homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status: newStatus, group },
       });
 
       updated++;

@@ -124,6 +124,7 @@ model Game {
   awayScore Int?
   status    GameStatus @default(SCHEDULED)
   externalId Int?      @unique
+  group      String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
 

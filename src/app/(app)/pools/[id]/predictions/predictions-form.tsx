@@ -21,6 +21,12 @@ function getDeadlineLabel(matchDate: string | Date): string {
   return `${minutes}min restantes`;
 }
 
+function formatGroupLabel(group: string): string {
+  const m = group.match(/GROUP_([A-Z]+)/);
+  if (m) return `Grupo ${m[1]}`;
+  return group.replace(/_/g, ' ');
+}
+
 interface Game {
   id: string;
   homeTeam: string;
@@ -29,6 +35,7 @@ interface Game {
   awayCrest?: string | null;
   matchDate: string | Date;
   status: string;
+  group?: string | null;
 }
 
 interface Props {
@@ -64,7 +71,6 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
       ...prev,
       [gameId]: { ...(prev[gameId] ?? { home: '', away: '' }), [field]: value },
     }));
-    // Auto-avança para o próximo campo ao preencher o placar do visitante
     if (field === 'away' && value !== '') {
       const currentIndex = openGames.findIndex((g) => g.id === gameId);
       const nextGame = openGames[currentIndex + 1];
@@ -129,13 +135,47 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
     );
   }
 
+  // ── Grouping logic ────────────────────────────────────────────────────────
+  const hasGroups = openGames.some((g) => g.group);
+
+  // Build ordered group sections: map of groupKey → games[]
+  const groupSections: { key: string; label: string | null; games: Game[] }[] = [];
+
+  if (hasGroups) {
+    const groupMap = new Map<string, Game[]>();
+    for (const game of openGames) {
+      const key = game.group ?? '__ungrouped__';
+      if (!groupMap.has(key)) groupMap.set(key, []);
+      groupMap.get(key)!.push(game);
+    }
+    // Sort groups alphabetically (GROUP_A before GROUP_B, etc.)
+    const sortedKeys = Array.from(groupMap.keys()).sort((a, b) => {
+      if (a === '__ungrouped__') return 1;
+      if (b === '__ungrouped__') return -1;
+      return a.localeCompare(b);
+    });
+    for (const key of sortedKeys) {
+      groupSections.push({
+        key,
+        label: key !== '__ungrouped__' ? formatGroupLabel(key) : null,
+        games: groupMap.get(key)!,
+      });
+    }
+  } else {
+    groupSections.push({ key: '__all__', label: null, games: openGames });
+  }
+
   return (
     <div className="space-y-4 pb-28 md:pb-0">
       {/* Progress bar */}
       <div className="flex items-center justify-between text-xs text-slate-500">
-        <span>{filled} de {openGames.length} palpite{openGames.length !== 1 ? 's' : ''} preenchido{filled !== 1 ? 's' : ''}</span>
+        <span>
+          {filled} de {openGames.length} palpite{openGames.length !== 1 ? 's' : ''} preenchido{filled !== 1 ? 's' : ''}
+        </span>
         <span className={filled === openGames.length ? 'text-emerald-400 font-medium' : ''}>
-          {filled === openGames.length ? 'Todos preenchidos!' : `${openGames.length - filled} pendente${openGames.length - filled !== 1 ? 's' : ''}`}
+          {filled === openGames.length
+            ? 'Todos preenchidos!'
+            : `${openGames.length - filled} pendente${openGames.length - filled !== 1 ? 's' : ''}`}
         </span>
       </div>
       <div className="h-1.5 rounded-full bg-slate-800 overflow-hidden">
@@ -145,81 +185,101 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
         />
       </div>
 
-      {/* Open games */}
-      <Card>
-        <CardContent className="divide-y divide-slate-800 p-0">
-          {openGames.map((game, index) => {
-            const p = predictions[game.id] ?? { home: '', away: '' };
-            const isFilled = p.home !== '' && p.away !== '';
-            const deadline = getDeadlineLabel(game.matchDate);
-            const urgent = new Date(game.matchDate).getTime() - Date.now() < 3 * 3600000;
+      {/* Game sections (grouped or flat) */}
+      {groupSections.map(({ key, label, games: sectionGames }) => (
+        <div key={key} className="space-y-2">
+          {/* Group header */}
+          {label && (
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {label}
+              </span>
+              <div className="flex-1 h-px bg-slate-800" />
+              <span className="text-xs text-slate-600">
+                {sectionGames.filter((g) => {
+                  const p = predictions[g.id];
+                  return p && p.home !== '' && p.away !== '';
+                }).length}/{sectionGames.length}
+              </span>
+            </div>
+          )}
 
-            return (
-              <div
-                key={game.id}
-                className={`px-4 py-3.5 transition-colors ${isFilled ? 'bg-brand-950/20' : ''}`}
-              >
-                {/* Deadline */}
-                <div className="flex justify-center mb-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${urgent ? 'text-amber-400 bg-amber-950/50 border border-amber-900' : 'text-slate-600'}`}>
-                    {formatDateTime(game.matchDate)} · {deadline}
-                  </span>
-                </div>
+          <Card>
+            <CardContent className="divide-y divide-slate-800 p-0">
+              {sectionGames.map((game) => {
+                const p = predictions[game.id] ?? { home: '', away: '' };
+                const isFilled = p.home !== '' && p.away !== '';
+                const deadline = getDeadlineLabel(game.matchDate);
+                const urgent = new Date(game.matchDate).getTime() - Date.now() < 3 * 3600000;
 
-                {/* Home team row */}
-                <div className="flex items-center gap-2">
-                  {game.homeCrest ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={game.homeCrest} alt={game.homeTeam} className="h-8 w-8 object-contain shrink-0" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
-                  )}
-                  <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0">{game.homeTeam}</span>
-                  <input
-                    ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={99}
-                    value={p.home}
-                    onChange={(e) => set(game.id, 'home', e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder="–"
-                    className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
-                      ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
-                  />
-                </div>
+                return (
+                  <div
+                    key={game.id}
+                    className={`px-4 py-3.5 transition-colors ${isFilled ? 'bg-brand-950/20' : ''}`}
+                  >
+                    {/* Deadline */}
+                    <div className="flex justify-center mb-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${urgent ? 'text-amber-400 bg-amber-950/50 border border-amber-900' : 'text-slate-600'}`}>
+                        {formatDateTime(game.matchDate)} · {deadline}
+                      </span>
+                    </div>
 
-                {/* Away team row */}
-                <div className="flex items-center gap-2 mt-2">
-                  {game.awayCrest ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={game.awayCrest} alt={game.awayTeam} className="h-8 w-8 object-contain shrink-0" />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
-                  )}
-                  <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0">{game.awayTeam}</span>
-                  <input
-                    ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    max={99}
-                    value={p.away}
-                    onChange={(e) => set(game.id, 'away', e.target.value)}
-                    onFocus={(e) => e.target.select()}
-                    placeholder="–"
-                    className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
-                      ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
+                    {/* Home team row */}
+                    <div className="flex items-center gap-2">
+                      {game.homeCrest ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={game.homeCrest} alt={game.homeTeam} className="h-8 w-8 object-contain shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                      )}
+                      <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0">{game.homeTeam}</span>
+                      <input
+                        ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={99}
+                        value={p.home}
+                        onChange={(e) => set(game.id, 'home', e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="–"
+                        className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
+                          ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
+                      />
+                    </div>
 
-      {/* Locked games (collapsed info) */}
+                    {/* Away team row */}
+                    <div className="flex items-center gap-2 mt-2">
+                      {game.awayCrest ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={game.awayCrest} alt={game.awayTeam} className="h-8 w-8 object-contain shrink-0" />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
+                      )}
+                      <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0">{game.awayTeam}</span>
+                      <input
+                        ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={99}
+                        value={p.away}
+                        onChange={(e) => set(game.id, 'away', e.target.value)}
+                        onFocus={(e) => e.target.select()}
+                        placeholder="–"
+                        className={`w-12 h-11 text-center text-lg font-bold rounded-lg border bg-slate-900 text-slate-100 shrink-0 focus:outline-none focus:ring-2 focus:ring-brand-500 transition-colors
+                          ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </div>
+      ))}
+
+      {/* Locked games */}
       {lockedGames.length > 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-2.5 text-xs text-slate-600">
           <Lock size={12} />
@@ -235,7 +295,7 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
         </div>
       )}
 
-      {/* Save button — fixed on mobile, static on desktop */}
+      {/* Save button */}
       <div className="fixed bottom-20 left-0 right-0 z-20 px-4 md:static md:bottom-auto md:px-0">
         <Button
           onClick={save}

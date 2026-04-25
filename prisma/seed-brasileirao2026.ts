@@ -132,6 +132,7 @@ async function main() {
         update: {
           homeTeam, awayTeam, homeCrest, awayCrest,
           matchDate, status,
+          group: m.group ?? null,
           homeScore: status === 'FINISHED' ? homeScore : null,
           awayScore: status === 'FINISHED' ? awayScore : null,
         },
@@ -140,6 +141,7 @@ async function main() {
           externalId: m.id,
           homeTeam, awayTeam, homeCrest, awayCrest,
           matchDate, status,
+          group: m.group ?? null,
           homeScore: status === 'FINISHED' ? homeScore : null,
           awayScore: status === 'FINISHED' ? awayScore : null,
         },
