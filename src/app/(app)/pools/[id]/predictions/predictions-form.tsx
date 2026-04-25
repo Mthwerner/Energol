@@ -237,6 +237,12 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                         <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
                       )}
                       <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.homeTeam}</span>
+                      {odds && (
+                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-emerald-950 border border-emerald-800 text-emerald-400">
+                          <span className="text-[9px] leading-none text-emerald-700 font-medium">1</span>
+                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.home.toFixed(2)}</span>
+                        </span>
+                      )}
                       <input
                         ref={(el) => { inputRefs.current[`${game.id}-home`] = el; }}
                         type="number"
@@ -252,30 +258,18 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                       />
                     </div>
 
-                    {/* Odds strip / separator */}
-                    <div className="flex items-center gap-1.5 my-1.5 pl-10 pr-14">
+                    {/* Draw / separator */}
+                    <div className="flex items-center gap-2 my-1.5 pl-10 pr-14">
+                      <div className="flex-1 h-px bg-slate-800" />
                       {odds ? (
-                        <>
-                          <span className="text-[11px] text-slate-500 tabular-nums">
-                            <span className="text-slate-600 mr-0.5">1</span>{odds.home.toFixed(2)}
-                          </span>
-                          <span className="text-slate-700 text-[10px]">·</span>
-                          <span className="text-[11px] text-slate-500 tabular-nums">
-                            <span className="text-slate-600 mr-0.5">X</span>{odds.draw.toFixed(2)}
-                          </span>
-                          <span className="text-slate-700 text-[10px]">·</span>
-                          <span className="text-[11px] text-slate-500 tabular-nums">
-                            <span className="text-slate-600 mr-0.5">2</span>{odds.away.toFixed(2)}
-                          </span>
-                          <span className="ml-auto text-[9px] text-slate-700">{odds.bookmaker}</span>
-                        </>
+                        <span className="shrink-0 flex flex-col items-center w-14 py-1 rounded-md bg-amber-950 border border-amber-800 text-amber-400">
+                          <span className="text-[9px] leading-none text-amber-700 font-medium">empate</span>
+                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.draw.toFixed(2)}</span>
+                        </span>
                       ) : (
-                        <div className="flex-1 flex items-center gap-2">
-                          <div className="flex-1 h-px bg-slate-800/60" />
-                          <span className="text-[10px] text-slate-700">vs</span>
-                          <div className="flex-1 h-px bg-slate-800/60" />
-                        </div>
+                        <span className="text-[10px] text-slate-700 shrink-0">vs</span>
                       )}
+                      <div className="flex-1 h-px bg-slate-800" />
                     </div>
 
                     {/* Away team row */}
@@ -287,6 +281,12 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                         <div className="h-8 w-8 rounded-full bg-slate-800 shrink-0" />
                       )}
                       <span className="flex-1 text-sm font-semibold text-slate-100 min-w-0 truncate">{game.awayTeam}</span>
+                      {odds && (
+                        <span className="shrink-0 flex flex-col items-center w-12 py-1 rounded-md bg-sky-950 border border-sky-800 text-sky-400">
+                          <span className="text-[9px] leading-none text-sky-700 font-medium">2</span>
+                          <span className="text-xs font-bold tabular-nums leading-tight">{odds.away.toFixed(2)}</span>
+                        </span>
+                      )}
                       <input
                         ref={(el) => { inputRefs.current[`${game.id}-away`] = el; }}
                         type="number"
@@ -301,6 +301,12 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                           ${isFilled ? 'border-brand-700' : 'border-slate-700'}`}
                       />
                     </div>
+
+                    {odds && (
+                      <div className="text-right mt-1">
+                        <span className="text-[9px] text-slate-700">{odds.bookmaker}</span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
