@@ -130,7 +130,7 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pb-28 md:pb-0">
       {/* Progress bar */}
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>{filled} de {openGames.length} palpite{openGames.length !== 1 ? 's' : ''} preenchido{filled !== 1 ? 's' : ''}</span>
@@ -244,12 +244,12 @@ export function PredictionsForm({ poolId, games, initialPredictions }: Props) {
         </div>
       )}
 
-      {/* Save button — sticky on mobile */}
-      <div className="sticky bottom-20 md:bottom-4 z-10">
+      {/* Save button — fixed on mobile, static on desktop */}
+      <div className="fixed bottom-20 left-0 right-0 z-20 px-4 md:static md:bottom-auto md:px-0">
         <Button
           onClick={save}
           loading={saving}
-          className="w-full shadow-lg shadow-black/40"
+          className="w-full shadow-lg shadow-black/50 md:shadow-none"
           size="lg"
         >
           {saved
