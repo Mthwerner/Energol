@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { Plus, ChevronDown, ChevronRight, Trash2, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,15 +50,60 @@ const gameSchema = z.object({
 type RoundForm = z.infer<typeof roundSchema>;
 type GameForm = z.infer<typeof gameSchema>;
 
+type Competition = 'WC2026' | 'BSA2026';
+
+const COMPETITIONS: { value: Competition; label: string }[] = [
+  { value: 'WC2026', label: 'Copa do Mundo 2026' },
+  { value: 'BSA2026', label: 'Brasileirão Série A 2026' },
+];
+
+interface SyncResult {
+  roundsCreated: number;
+  roundsUpdated: number;
+  gamesCreated: number;
+  gamesUpdated: number;
+  newResults: number;
+}
+
 export function RoundsManager({ poolId, initialRounds }: { poolId: string; initialRounds: Round[] }) {
   const [rounds, setRounds] = useState<Round[]>(initialRounds);
   const [openRoundId, setOpenRoundId] = useState<string | null>(null);
   const [games, setGames] = useState<Record<string, Game[]>>({});
   const [showRoundModal, setShowRoundModal] = useState(false);
   const [addGameRoundId, setAddGameRoundId] = useState<string | null>(null);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [selectedCompetition, setSelectedCompetition] = useState<Competition>('WC2026');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(null);
 
   const roundForm = useForm<RoundForm>({ resolver: zodResolver(roundSchema) });
   const gameForm = useForm<GameForm>({ resolver: zodResolver(gameSchema) });
+
+  const syncRounds = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    setSyncError(null);
+    try {
+      const res = await fetch('/api/admin/sync-rounds', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ poolId, competition: selectedCompetition }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSyncError(data.error ?? 'Erro ao sincronizar');
+        return;
+      }
+      setSyncResult(data.summary);
+      // Recarrega a página para refletir as rodadas atualizadas
+      window.location.reload();
+    } catch {
+      setSyncError('Erro de conexão');
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadGames = async (roundId: string) => {
     if (games[roundId]) return;
@@ -121,9 +166,14 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-sm font-medium text-slate-400">{rounds.length} rodada{rounds.length !== 1 ? 's' : ''}</h2>
-        <Button size="sm" onClick={() => setShowRoundModal(true)}>
-          <Plus size={14} /> Nova rodada
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="secondary" onClick={() => { setSyncResult(null); setSyncError(null); setShowSyncModal(true); }}>
+            <RefreshCw size={14} /> Sincronizar
+          </Button>
+          <Button size="sm" onClick={() => setShowRoundModal(true)}>
+            <Plus size={14} /> Nova rodada
+          </Button>
+        </div>
       </div>
 
       {rounds.length === 0 && (
@@ -202,6 +252,53 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
             <Button type="button" variant="secondary" onClick={() => setAddGameRoundId(null)}>Cancelar</Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Sync modal */}
+      <Modal open={showSyncModal} onClose={() => !syncing && setShowSyncModal(false)} title="Sincronizar rodadas">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-400">
+            Busca rodadas e jogos diretamente da football-data.org e atualiza o bolão automaticamente.
+            Novos resultados são computados na pontuação.
+          </p>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-slate-300">Competição</label>
+            <select
+              value={selectedCompetition}
+              onChange={(e) => setSelectedCompetition(e.target.value as Competition)}
+              className="w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {COMPETITIONS.map((c) => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {syncError && (
+            <div className="rounded-md bg-red-950 border border-red-800 px-3 py-2 text-sm text-red-300">
+              {syncError}
+            </div>
+          )}
+
+          {syncResult && (
+            <div className="rounded-md bg-green-950 border border-green-800 px-3 py-2 text-sm text-green-300 space-y-0.5">
+              <p className="font-medium">Sincronização concluída!</p>
+              <p>Rodadas criadas: {syncResult.roundsCreated} · atualizadas: {syncResult.roundsUpdated}</p>
+              <p>Jogos criados: {syncResult.gamesCreated} · atualizados: {syncResult.gamesUpdated}</p>
+              {syncResult.newResults > 0 && <p>Novos resultados computados: {syncResult.newResults}</p>}
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-1">
+            <Button onClick={syncRounds} loading={syncing} disabled={syncing}>
+              <RefreshCw size={14} /> {syncing ? 'Sincronizando...' : 'Sincronizar agora'}
+            </Button>
+            <Button type="button" variant="secondary" onClick={() => setShowSyncModal(false)} disabled={syncing}>
+              Fechar
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
