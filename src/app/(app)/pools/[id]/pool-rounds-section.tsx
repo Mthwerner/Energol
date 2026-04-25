@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight, ArrowRight, Trophy, CalendarDays } from 'luc
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RoundStatusBadge } from '@/components/ui/badge';
-import { formatDate, formatDateTime } from '@/lib/utils';
+import { formatDate, formatShortDateTime } from '@/lib/utils';
 
 interface Game {
   id: string;
@@ -83,35 +83,40 @@ export function PoolRoundsSection({ poolId, featuredRound, featuredPredictions, 
                 {featuredRound.games.map((game) => {
                   const pred = featuredPredictions[game.id];
                   return (
-                    <div key={game.id} className="flex items-center gap-2 px-4 py-2.5">
-                      {/* Home */}
-                      <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
-                        <span className="text-xs font-medium text-slate-200 truncate">{game.homeTeam}</span>
-                        {game.homeCrest && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={game.homeCrest} alt="" className="h-5 w-5 object-contain shrink-0" />
-                        )}
+                    <div key={game.id} className="px-3 py-2 space-y-1">
+                      {/* Date — own line, no overflow risk */}
+                      <div className="text-center text-xs text-slate-600">
+                        {formatShortDateTime(game.matchDate)}
                       </div>
 
-                      {/* Center: time + prediction */}
-                      <div className="shrink-0 flex flex-col items-center gap-0.5 px-1">
-                        <span className="text-xs text-slate-500 whitespace-nowrap">{formatDateTime(game.matchDate)}</span>
-                        {pred ? (
-                          <span className="text-xs font-bold text-brand-400 tracking-wide">
-                            {pred.homeScore} × {pred.awayScore}
-                          </span>
-                        ) : (
-                          <span className="text-xs text-slate-700">– × –</span>
-                        )}
-                      </div>
+                      {/* Teams row — fixed-width center, names truncate freely */}
+                      <div className="flex items-center gap-1">
+                        {/* Home */}
+                        <div className="flex-1 flex items-center justify-end gap-1 min-w-0">
+                          <span className="text-xs font-medium text-slate-200 truncate">{game.homeTeam}</span>
+                          {game.homeCrest && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={game.homeCrest} alt="" className="h-5 w-5 object-contain shrink-0" />
+                          )}
+                        </div>
 
-                      {/* Away */}
-                      <div className="flex-1 flex items-center justify-start gap-1.5 min-w-0">
-                        {game.awayCrest && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={game.awayCrest} alt="" className="h-5 w-5 object-contain shrink-0" />
-                        )}
-                        <span className="text-xs font-medium text-slate-200 truncate">{game.awayTeam}</span>
+                        {/* Prediction — fixed narrow column */}
+                        <div className="shrink-0 w-14 text-center">
+                          {pred ? (
+                            <span className="text-xs font-bold text-brand-400">{pred.homeScore}×{pred.awayScore}</span>
+                          ) : (
+                            <span className="text-xs text-slate-700">–×–</span>
+                          )}
+                        </div>
+
+                        {/* Away */}
+                        <div className="flex-1 flex items-center justify-start gap-1 min-w-0">
+                          {game.awayCrest && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={game.awayCrest} alt="" className="h-5 w-5 object-contain shrink-0" />
+                          )}
+                          <span className="text-xs font-medium text-slate-200 truncate">{game.awayTeam}</span>
+                        </div>
                       </div>
                     </div>
                   );

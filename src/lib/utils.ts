@@ -24,6 +24,15 @@ export function formatDateTime(date: Date | string): string {
   });
 }
 
+export function formatShortDateTime(date: Date | string): string {
+  return new Date(date).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function getRoundStatusLabel(status: string): string {
   const map: Record<string, string> = {
     OPEN: 'Aberta',
