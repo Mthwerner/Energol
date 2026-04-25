@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
@@ -159,6 +160,9 @@ export async function POST(req: NextRequest) {
         if (existingGame) gamesUpdated++; else gamesCreated++;
       }
     }
+
+    // Invalida o cache da tabela de classificação desta competição
+    revalidateTag(competition === 'WC2026' ? 'standings-WC' : 'standings-BSA');
 
     return NextResponse.json({
       ok: true,

@@ -11,6 +11,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
@@ -78,6 +79,8 @@ export async function POST() {
 
       updated++;
     }
+
+    revalidateTag('standings-WC');
 
     return NextResponse.json({
       ok: true,

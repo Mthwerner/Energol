@@ -176,7 +176,7 @@ export interface FDStandingTable {
 export async function fetchStandings(competition: 'BSA' | 'WC'): Promise<FDStandingTable[]> {
   const res = await fetch(`${BASE_URL}/competitions/${competition}/standings`, {
     headers: headers(),
-    next: { revalidate: 1800 }, // cache 30 min
+    next: { revalidate: 1800, tags: [`standings-${competition}`] },
   });
 
   if (!res.ok) {

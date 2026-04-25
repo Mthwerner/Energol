@@ -11,7 +11,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, AlertCircle } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Tabela do Campeonato' };
-export const revalidate = 1800;
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -21,18 +20,22 @@ function formatGroupLabel(group: string): string {
   return group.replace(/_/g, ' ');
 }
 
-// Zone highlight: returns left-border + bg class
-function zoneClass(position: number, competition: 'BSA' | 'WC', isGroup: boolean): string {
+// Returns { rowBg, cellBorder } — border must go on the <td>, not <tr>,
+// because <tr> ignores border-left without border-collapse:collapse on the table.
+function zoneClasses(
+  position: number,
+  competition: 'BSA' | 'WC',
+  isGroup: boolean,
+): { rowBg: string; cellBorder: string } {
   if (competition === 'BSA') {
-    if (position <= 4)  return 'border-l-2 border-l-emerald-600 bg-emerald-950/10';
-    if (position <= 6)  return 'border-l-2 border-l-cyan-700 bg-cyan-950/10';
-    if (position >= 17) return 'border-l-2 border-l-red-800 bg-red-950/10';
+    if (position <= 4)  return { rowBg: 'bg-emerald-950/10', cellBorder: 'border-l-2 border-l-emerald-500' };
+    if (position <= 6)  return { rowBg: 'bg-cyan-950/10',    cellBorder: 'border-l-2 border-l-cyan-600'    };
+    if (position >= 17) return { rowBg: 'bg-red-950/10',     cellBorder: 'border-l-2 border-l-red-700'     };
   }
   if (competition === 'WC' && isGroup) {
-    if (position <= 2)  return 'border-l-2 border-l-emerald-600 bg-emerald-950/10';
-    if (position >= 3)  return 'border-l-2 border-l-slate-700 bg-transparent';
+    if (position <= 2) return { rowBg: 'bg-emerald-950/10', cellBorder: 'border-l-2 border-l-emerald-500' };
   }
-  return 'border-l-2 border-l-transparent';
+  return { rowBg: '', cellBorder: 'border-l-2 border-l-transparent' };
 }
 
 function StandingsTable({
@@ -50,28 +53,25 @@ function StandingsTable({
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 text-xs text-slate-500">
-              <th className="w-8 px-3 py-2.5 text-center font-medium">#</th>
+              <th className="w-10 py-2.5 pl-3 pr-2 text-center font-medium">#</th>
               <th className="px-2 py-2.5 text-left font-medium">Time</th>
-              {/* always visible */}
-              <th className="w-10 px-2 py-2.5 text-center font-medium">Pts</th>
-              {/* sm+ */}
+              <th className="w-10 px-2 py-2.5 text-center font-bold text-slate-300">Pts</th>
               <th className="w-8 px-2 py-2.5 text-center font-medium hidden sm:table-cell">J</th>
               <th className="w-8 px-2 py-2.5 text-center font-medium hidden sm:table-cell">V</th>
               <th className="w-8 px-2 py-2.5 text-center font-medium hidden sm:table-cell">E</th>
               <th className="w-8 px-2 py-2.5 text-center font-medium hidden sm:table-cell">D</th>
-              {/* md+ */}
               <th className="w-10 px-2 py-2.5 text-center font-medium hidden md:table-cell">GP</th>
               <th className="w-10 px-2 py-2.5 text-center font-medium hidden md:table-cell">GC</th>
               <th className="w-10 px-2 py-2.5 text-center font-medium hidden md:table-cell">SG</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800/60">
+          <tbody className="divide-y divide-slate-800/50">
             {table.map((entry) => {
-              const zone = zoneClass(entry.position, competition, isGroup);
+              const { rowBg, cellBorder } = zoneClasses(entry.position, competition, isGroup);
               return (
-                <tr key={entry.team.id} className={`transition-colors hover:bg-slate-800/30 ${zone}`}>
-                  {/* Position */}
-                  <td className="px-3 py-2.5 text-center">
+                <tr key={entry.team.id} className={`transition-colors hover:bg-slate-800/30 ${rowBg}`}>
+                  {/* Position — zone border applied here on the <td> */}
+                  <td className={`py-2.5 pl-0 pr-2 text-center ${cellBorder}`}>
                     <span className="text-xs font-semibold text-slate-400">{entry.position}</span>
                   </td>
 
@@ -94,27 +94,27 @@ function StandingsTable({
                     </div>
                   </td>
 
-                  {/* Points — always visible, highlighted */}
+                  {/* Points */}
                   <td className="px-2 py-2.5 text-center">
                     <span className="font-bold text-slate-100">{entry.points}</span>
                   </td>
 
-                  {/* sm+ columns */}
+                  {/* sm+ */}
                   <td className="px-2 py-2.5 text-center text-slate-400 hidden sm:table-cell">{entry.playedGames}</td>
                   <td className="px-2 py-2.5 text-center hidden sm:table-cell">
-                    <span className={entry.won > 0 ? 'text-emerald-400 font-medium' : 'text-slate-500'}>{entry.won}</span>
+                    <span className={entry.won > 0 ? 'font-medium text-emerald-400' : 'text-slate-500'}>{entry.won}</span>
                   </td>
                   <td className="px-2 py-2.5 text-center text-slate-400 hidden sm:table-cell">{entry.draw}</td>
                   <td className="px-2 py-2.5 text-center hidden sm:table-cell">
                     <span className={entry.lost > 0 ? 'text-red-400' : 'text-slate-500'}>{entry.lost}</span>
                   </td>
 
-                  {/* md+ columns */}
+                  {/* md+ */}
                   <td className="px-2 py-2.5 text-center text-slate-400 hidden md:table-cell">{entry.goalsFor}</td>
                   <td className="px-2 py-2.5 text-center text-slate-400 hidden md:table-cell">{entry.goalsAgainst}</td>
                   <td className="px-2 py-2.5 text-center hidden md:table-cell">
                     <span className={
-                      entry.goalDifference > 0 ? 'text-emerald-400' :
+                      entry.goalDifference > 0 ? 'text-emerald-400 font-medium' :
                       entry.goalDifference < 0 ? 'text-red-400' : 'text-slate-500'
                     }>
                       {entry.goalDifference > 0 ? `+${entry.goalDifference}` : entry.goalDifference}
@@ -134,15 +134,15 @@ function ZoneLegend({ competition }: { competition: 'BSA' | 'WC' }) {
   if (competition === 'BSA') {
     return (
       <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-600 shrink-0" /> Libertadores (1–4)</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-cyan-700 shrink-0" /> Sul-Americana (5–6)</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-red-800 shrink-0" /> Rebaixamento (17–20)</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-1 rounded-sm bg-emerald-500 shrink-0" /> Libertadores (1–4)</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-1 rounded-sm bg-cyan-600 shrink-0" /> Sul-Americana (5–6)</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-1 rounded-sm bg-red-700 shrink-0" /> Rebaixamento (17–20)</span>
       </div>
     );
   }
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">
-      <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-emerald-600 shrink-0" /> Avança (1–2)</span>
+      <span className="flex items-center gap-1.5"><span className="h-2.5 w-1 rounded-sm bg-emerald-500 shrink-0" /> Avança (1–2 por grupo)</span>
     </div>
   );
 }
@@ -160,7 +160,6 @@ export default async function StandingsPage({ params }: Props) {
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect(`/pools/${id}`);
 
-  // Detect competition: WC pools have games with groups, BSA pools don't
   const wcGame = await prisma.game.findFirst({
     where: { round: { poolId: id }, group: { not: null } },
     select: { id: true },
@@ -210,7 +209,6 @@ export default async function StandingsPage({ params }: Props) {
         ) : (
           <>
             {isGrouped ? (
-              // WC: one table per group
               standings.map((s) => (
                 <div key={s.group} className="space-y-2">
                   <div className="flex items-center gap-2 px-1">
@@ -223,14 +221,12 @@ export default async function StandingsPage({ params }: Props) {
                 </div>
               ))
             ) : (
-              // BSA: single table
               <StandingsTable table={standings[0].table} competition={competition} />
             )}
 
             <ZoneLegend competition={competition} />
-
             <p className="text-xs text-slate-600 text-center">
-              J = Jogos · V = Vitórias · E = Empates · D = Derrotas · GP = Gols pró · GC = Gols contra · SG = Saldo
+              J = Jogos · V = Vitórias · E = Empates · D = Derrotas · GP = Gols pró · GC = Gols contra · SG = Saldo de gols
             </p>
           </>
         )}
