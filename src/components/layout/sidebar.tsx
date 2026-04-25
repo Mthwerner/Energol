@@ -3,12 +3,13 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { LayoutDashboard, Trophy, LogOut, Zap } from 'lucide-react';
+import { LayoutDashboard, Trophy, LogOut, Zap, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/pools', label: 'Meus Bolões', icon: Trophy },
+  { href: '/profile', label: 'Perfil', icon: UserCog },
 ];
 
 export function Sidebar() {
