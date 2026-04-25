@@ -3,16 +3,15 @@ import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
 import { getPool, isParticipant, isOwner } from '@/services/pool.service';
-import { listRounds } from '@/services/round.service';
+import { listRounds, getRound } from '@/services/round.service';
 import { getPoolRanking } from '@/services/ranking.service';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { RoundStatusBadge } from '@/components/ui/badge';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { InviteButton } from './invite-button';
+import { PoolRoundsSection } from './pool-rounds-section';
 import { Users, Trophy, Target, Settings, ArrowRight, UserMinus } from 'lucide-react';
-import { formatDate } from '@/lib/utils';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -37,6 +36,14 @@ export default async function PoolPage({ params }: Props) {
 
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect('/pools');
+
+  const openRounds = rounds.filter((r) => r.status === 'OPEN');
+  const finishedRounds = rounds.filter((r) => r.status !== 'OPEN');
+
+  // Rodada mais recente aberta (maior número)
+  const featuredRoundBase = openRounds[openRounds.length - 1] ?? null;
+  const featuredRound = featuredRoundBase ? await getRound(featuredRoundBase.id) : null;
+  const otherOpenRounds = openRounds.slice(0, -1);
 
   const myRank = ranking.find((r) => r.userId === session.user.id);
 
@@ -88,37 +95,12 @@ export default async function PoolPage({ params }: Props) {
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Rounds */}
-          <Card>
-            <CardHeader className="pt-5">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">Rodadas</CardTitle>
-                <Link href={`/pools/${id}/predictions`}>
-                  <Button variant="ghost" size="sm" className="text-xs">
-                    Fazer palpites <ArrowRight size={12} />
-                  </Button>
-                </Link>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {rounds.length === 0 ? (
-                <p className="text-sm text-slate-500 py-4 text-center">Nenhuma rodada cadastrada</p>
-              ) : (
-                <div className="space-y-2">
-                  {rounds.map((round) => (
-                    <div key={round.id} className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-950 px-3 py-2.5">
-                      <div>
-                        <div className="text-sm font-medium text-slate-200">{round.name}</div>
-                        <div className="text-xs text-slate-500">
-                          {formatDate(round.startDate)} — {formatDate(round.endDate)} · {round._count.games} jogo{round._count.games !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                      <RoundStatusBadge status={round.status} />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <PoolRoundsSection
+            poolId={id}
+            featuredRound={featuredRound}
+            otherOpenRounds={otherOpenRounds}
+            finishedRounds={finishedRounds}
+          />
 
           {/* Ranking preview */}
           <Card>
