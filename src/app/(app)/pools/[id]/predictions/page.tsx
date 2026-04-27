@@ -29,7 +29,7 @@ export default async function PredictionsPage({ params }: Props) {
   const rounds = await listRounds(id);
 
   const now = new Date();
-  const openRounds = rounds.filter((r) => r.status === 'OPEN' && new Date(r.endDate) > now);
+  const openRounds = rounds.filter((r) => (r.status === 'OPEN' || r.status === 'IN_PROGRESS') && new Date(r.endDate) > now);
   const finishedRounds = rounds.filter((r) => r.status === 'FINISHED');
 
   return (

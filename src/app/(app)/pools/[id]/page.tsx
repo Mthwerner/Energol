@@ -40,7 +40,7 @@ export default async function PoolPage({ params }: Props) {
   if (!member) redirect('/pools');
 
   const now = new Date();
-  const openRounds = rounds.filter((r) => r.status === 'OPEN' && new Date(r.endDate) > now);
+  const openRounds = rounds.filter((r) => (r.status === 'OPEN' || r.status === 'IN_PROGRESS') && new Date(r.endDate) > now);
   const finishedRounds = rounds.filter((r) => r.status === 'FINISHED');
 
   // Rodada em destaque: a que encerra mais cedo (mais urgente)

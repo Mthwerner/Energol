@@ -32,6 +32,7 @@ export { Badge };
 export function RoundStatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; variant: BadgeProps['variant'] }> = {
     OPEN: { label: 'Aberta', variant: 'success' },
+    IN_PROGRESS: { label: 'Em andamento', variant: 'warning' },
     CLOSED: { label: 'Fechada', variant: 'warning' },
     FINISHED: { label: 'Finalizada', variant: 'muted' },
   };

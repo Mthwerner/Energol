@@ -106,7 +106,7 @@ export async function getPendingPredictionsAlert(poolId: string): Promise<Pendin
 
   // Rodada mais próxima de fechar (menor endDate ainda no futuro)
   const round = await prisma.round.findFirst({
-    where: { poolId, status: 'OPEN', endDate: { gt: now } },
+    where: { poolId, status: { in: ['OPEN', 'IN_PROGRESS'] }, endDate: { gt: now } },
     orderBy: { endDate: 'asc' },
     include: { games: { select: { id: true } } },
   });

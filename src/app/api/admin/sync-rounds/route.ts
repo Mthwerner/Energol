@@ -25,7 +25,7 @@ import {
   type FDMatch,
   type RoundDef,
 } from '@/lib/football-data';
-import { setGameResult } from '@/services/result.service';
+import { setGameResult, recalculateRoundResults } from '@/services/result.service';
 import { GameStatus, RoundStatus } from '@prisma/client';
 
 export async function POST(req: NextRequest) {
@@ -92,7 +92,14 @@ export async function POST(req: NextRequest) {
       const allFinished = matches.every(
         (m) => m.status === 'FINISHED' || m.status === 'AWARDED',
       );
-      const roundStatus: RoundStatus = allFinished ? RoundStatus.FINISHED : RoundStatus.OPEN;
+      const anyStarted = matches.some(
+        (m) => m.status === 'IN_PLAY' || m.status === 'PAUSED' || m.status === 'FINISHED' || m.status === 'AWARDED',
+      );
+      const roundStatus: RoundStatus = allFinished
+        ? RoundStatus.FINISHED
+        : anyStarted
+          ? RoundStatus.IN_PROGRESS
+          : RoundStatus.OPEN;
 
       const existing = await prisma.round.findUnique({
         where: { poolId_number: { poolId, number: def.number } },
@@ -158,6 +165,14 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingGame) gamesUpdated++; else gamesCreated++;
+      }
+
+      // Garante que pontos e scores estejam corretos em rodadas finalizadas.
+      // Necessário porque: (a) jogos novos chegam já como FINISHED sem passar pelo
+      // setGameResult, e (b) o upsert da rodada define status=FINISHED antes de
+      // processar jogos, bloqueando o recalculateRoundScores interno do setGameResult.
+      if (allFinished) {
+        await recalculateRoundResults(round.id);
       }
     }
 

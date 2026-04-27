@@ -56,7 +56,7 @@ export async function setGameResult(
     const allGames = await tx.game.findMany({ where: { roundId: game.roundId } });
     const allFinished = allGames.every((g) => g.status === GameStatus.FINISHED || g.id === gameId);
 
-    if (allFinished && game.round.status !== RoundStatus.FINISHED) {
+    if (allFinished) {
       await tx.round.update({
         where: { id: game.roundId },
         data: { status: RoundStatus.FINISHED },
@@ -87,6 +87,57 @@ async function recalculateRoundScores(
     const correctResults = userPreds.filter((p) => p.points === 5 || p.points === 7).length;
 
     await tx.participantScore.upsert({
+      where: { participantId_roundId: { participantId: participant.id, roundId } },
+      update: { totalPoints, exactScores, correctResults },
+      create: { participantId: participant.id, roundId, totalPoints, exactScores, correctResults },
+    });
+  }
+}
+
+/**
+ * Recalcula pontos das predições e scores dos participantes para uma rodada.
+ * Usado pelo sync para garantir consistência mesmo quando jogos são criados
+ * já com status FINISHED (sem passar pelo fluxo normal de setGameResult).
+ */
+export async function recalculateRoundResults(roundId: string): Promise<void> {
+  // Recalcula pontos das predições para todos os jogos finalizados
+  const games = await prisma.game.findMany({
+    where: { roundId, status: GameStatus.FINISHED },
+    include: { predictions: true },
+  });
+
+  for (const game of games) {
+    if (game.homeScore === null || game.awayScore === null) continue;
+    for (const pred of game.predictions) {
+      const calc = calculateScore(
+        { homeScore: pred.homeScore, awayScore: pred.awayScore },
+        { homeScore: game.homeScore, awayScore: game.awayScore },
+      );
+      if (pred.points !== calc.points) {
+        await prisma.prediction.update({
+          where: { id: pred.id },
+          data: { points: calc.points },
+        });
+      }
+    }
+  }
+
+  // Agrega ParticipantScores com pontos atualizados
+  const participants = await prisma.participant.findMany({
+    where: { pool: { rounds: { some: { id: roundId } } }, isActive: true },
+  });
+
+  const predictions = await prisma.prediction.findMany({
+    where: { game: { roundId } },
+  });
+
+  for (const participant of participants) {
+    const userPreds = predictions.filter((p) => p.userId === participant.userId);
+    const totalPoints = userPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
+    const exactScores = userPreds.filter((p) => p.points === 10).length;
+    const correctResults = userPreds.filter((p) => p.points === 5 || p.points === 7).length;
+
+    await prisma.participantScore.upsert({
       where: { participantId_roundId: { participantId: participant.id, roundId } },
       update: { totalPoints, exactScores, correctResults },
       create: { participantId: participant.id, roundId, totalPoints, exactScores, correctResults },
