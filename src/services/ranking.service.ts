@@ -39,10 +39,12 @@ export async function getPoolRanking(poolId: string) {
   const entries = participants.map((p) => {
     const uid = p.user.id;
     const t = tierMap[uid] ?? {};
+    // Soma pontos direto das predições (inclui jogos de rodadas em andamento)
+    const totalPoints = Object.entries(t).reduce((sum, [pts, cnt]) => sum + Number(pts) * (cnt as number), 0);
     return {
       userId: uid,
       name: p.user.name,
-      totalPoints:     p.scores.reduce((sum, s) => sum + s.totalPoints, 0),
+      totalPoints,
       exactScores:     t[10] ?? 0,
       resultDiffScores: t[7] ?? 0,
       correctResults:  t[5]  ?? 0,
