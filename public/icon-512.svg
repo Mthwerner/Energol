@@ -1,14 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f172a"/>
-      <stop offset="100%" style="stop-color:#1e293b"/>
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4338ca"/>
     </linearGradient>
   </defs>
+  <!-- brand-600 background with rounded corners -->
   <rect width="512" height="512" rx="96" fill="url(#bg)"/>
-  <!-- Soccer ball circle -->
-  <circle cx="256" cy="192" r="100" fill="none" stroke="#22c55e" stroke-width="8" opacity="0.4"/>
-  <circle cx="256" cy="192" r="26" fill="#22c55e" opacity="0.5"/>
-  <!-- E letter -->
-  <text x="256" y="400" font-family="system-ui,ui-sans-serif,sans-serif" font-size="234" font-weight="900" text-anchor="middle" fill="#22c55e">E</text>
+  <!-- Zap / lightning bolt centered and scaled -->
+  <svg x="126" y="126" width="260" height="260" viewBox="3 2 18 20" preserveAspectRatio="xMidYMid meet">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="white"/>
+  </svg>
 </svg>

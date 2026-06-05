@@ -4,8 +4,8 @@
   "description": "Bolão de futebol online",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#4f46e5",
+  "theme_color": "#4f46e5",
   "orientation": "portrait-primary",
   "categories": ["sports", "games"],
   "icons": [
