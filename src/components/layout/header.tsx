@@ -22,7 +22,7 @@ export function Header({ title, description, actions }: HeaderProps) {
 
         <div className="flex items-center gap-2 shrink-0">
           {actions && (
-            <div className="flex items-center gap-1.5 overflow-x-auto">
+            <div className="flex items-center gap-1.5 overflow-visible">
               {actions}
             </div>
           )}
