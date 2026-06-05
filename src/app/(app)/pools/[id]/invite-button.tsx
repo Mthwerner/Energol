@@ -79,7 +79,8 @@ export function InviteButton({ poolId }: { poolId: string }) {
   return (
     <>
       <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        <Link2 size={14} /> Convidar
+        <Link2 size={14} />
+        <span className="hidden md:inline">Convidar</span>
       </Button>
 
       <Modal open={open} onClose={handleClose} title="Convidar para o bolão" className="max-w-lg">

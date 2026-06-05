@@ -11,8 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { InviteButton } from './invite-button';
+import { OwnerActionsMenu } from './owner-menu';
 import { PoolRoundsSection } from './pool-rounds-section';
-import { DeletePoolButton } from './delete-pool-button';
 import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen, BarChart2, Swords } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -73,35 +73,24 @@ export default async function PoolPage({ params }: Props) {
           <div className="flex items-center gap-2">
             <Link href={`/pools/${id}/standings`}>
               <Button variant="ghost" size="sm">
-                <BarChart2 size={14} /> Tabela
+                <BarChart2 size={14} />
+                <span className="hidden md:inline">Tabela</span>
               </Button>
             </Link>
             <Link href={`/pools/${id}/scorers`}>
               <Button variant="ghost" size="sm">
-                <Swords size={14} /> Artilharia
+                <Swords size={14} />
+                <span className="hidden md:inline">Artilharia</span>
               </Button>
             </Link>
             <Link href={`/pools/${id}/rules`}>
               <Button variant="ghost" size="sm">
-                <BookOpen size={14} /> Regras
+                <BookOpen size={14} />
+                <span className="hidden md:inline">Regras</span>
               </Button>
             </Link>
             {owner && <InviteButton poolId={id} />}
-            {owner && (
-              <Link href={`/pools/${id}/participants`}>
-                <Button variant="secondary" size="sm">
-                  <UserMinus size={14} /> Participantes
-                </Button>
-              </Link>
-            )}
-            {owner && (
-              <Link href={`/pools/${id}/rounds`}>
-                <Button variant="secondary" size="sm">
-                  <Settings size={14} /> Gerenciar
-                </Button>
-              </Link>
-            )}
-            {owner && <DeletePoolButton poolId={id} poolName={pool.name} />}
+            {owner && <OwnerActionsMenu poolId={id} poolName={pool.name} />}
           </div>
         }
       />
