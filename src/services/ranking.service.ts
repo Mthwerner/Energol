@@ -103,6 +103,51 @@ export async function getRoundRanking(roundId: string) {
   });
 }
 
+export interface RankingHistory {
+  rounds: { id: string; name: string; number: number }[];
+  participants: { userId: string; name: string; roundPoints: (number | null)[] }[];
+}
+
+export async function getRankingHistory(poolId: string): Promise<RankingHistory | null> {
+  const rounds = await prisma.round.findMany({
+    where: { poolId, status: 'FINISHED' },
+    orderBy: { number: 'asc' },
+    select: { id: true, name: true, number: true },
+  });
+
+  if (rounds.length < 2) return null;
+
+  const scores = await prisma.participantScore.findMany({
+    where: { roundId: { in: rounds.map((r) => r.id) } },
+    include: {
+      participant: { include: { user: { select: { id: true, name: true } } } },
+    },
+  });
+
+  const byUser = new Map<string, { name: string; roundScores: Map<string, number> }>();
+  for (const score of scores) {
+    const uid = score.participant.userId;
+    if (!byUser.has(uid)) {
+      byUser.set(uid, { name: score.participant.user.name ?? 'Usuário', roundScores: new Map() });
+    }
+    byUser.get(uid)!.roundScores.set(score.roundId, score.totalPoints);
+  }
+
+  const participants = Array.from(byUser.entries()).map(([userId, data]) => ({
+    userId,
+    name: data.name,
+    roundPoints: rounds.map((r) => data.roundScores.get(r.id) ?? null),
+  }));
+
+  participants.sort((a, b) => {
+    const aTotal = a.roundPoints.reduce((s: number, p) => s + (p ?? 0), 0);
+    const bTotal = b.roundPoints.reduce((s: number, p) => s + (p ?? 0), 0);
+    return bTotal - aTotal;
+  });
+
+  return { rounds, participants };
+}
+
 export async function getPendingPredictionsAlert(poolId: string): Promise<PendingAlert | null> {
   const now = new Date();
 

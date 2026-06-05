@@ -3,12 +3,13 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { getPool, isParticipant } from '@/services/pool.service';
-import { getPoolRanking, getPendingPredictionsAlert } from '@/services/ranking.service';
+import { getPoolRanking, getPendingPredictionsAlert, getRankingHistory } from '@/services/ranking.service';
 import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Medal, Bell, Clock } from 'lucide-react';
+import { RankingHistoryTable } from './ranking-history';
 import { formatShortDateTime } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Classificação' };
@@ -20,17 +21,34 @@ export default async function RankingPage({ params }: Props) {
   if (!session) redirect('/login');
 
   const { id } = await params;
-  const [pool, member, ranking, pendingAlert] = await Promise.all([
+  const [pool, member, ranking, pendingAlert, rankingHistory] = await Promise.all([
     getPool(id),
     isParticipant(session.user.id, id),
     getPoolRanking(id),
     getPendingPredictionsAlert(id),
+    getRankingHistory(id),
   ]);
 
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect(`/pools/${id}`);
 
   const medalColors = ['text-amber-400', 'text-slate-300', 'text-amber-700'];
+
+  // Position trend: compare current rank vs rank excluding last finished round
+  const trendMap = new Map<string, number>(); // userId → delta (positive = moved up)
+  if (rankingHistory && rankingHistory.rounds.length >= 2) {
+    const prevTotals = rankingHistory.participants
+      .map((p) => ({
+        userId: p.userId,
+        pts: p.roundPoints.slice(0, -1).reduce((s: number, v) => s + (v ?? 0), 0),
+      }))
+      .sort((a, b) => b.pts - a.pts);
+    const prevRank = new Map(prevTotals.map((p, i) => [p.userId, i + 1]));
+    for (const entry of ranking) {
+      const prev = prevRank.get(entry.userId);
+      if (prev !== undefined) trendMap.set(entry.userId, prev - entry.position);
+    }
+  }
 
   // Calcula tempo restante legível
   function timeRemaining(endDate: Date): string {
@@ -156,17 +174,25 @@ export default async function RankingPage({ params }: Props) {
                     const isMe = entry.userId === session.user.id;
                     const isPending = pendingAlert?.pending.some((p) => p.userId === entry.userId);
                     const medal = entry.position <= 3 ? entry.position - 1 : -1;
+                    const trend = trendMap.get(entry.userId);
                     return (
                       <TableRow
                         key={entry.userId}
                         className={isMe ? 'bg-brand-950/20' : ''}
                       >
                         <TableCell className="font-medium">
-                          {medal >= 0 ? (
-                            <Medal size={16} className={medalColors[medal]} />
-                          ) : (
-                            <span className="text-slate-500">{entry.position}</span>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {medal >= 0 ? (
+                              <Medal size={16} className={medalColors[medal]} />
+                            ) : (
+                              <span className="text-slate-500">{entry.position}</span>
+                            )}
+                            {trend !== undefined && trend !== 0 && (
+                              <span className={`text-xs leading-none ${trend > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                                {trend > 0 ? `▲${trend}` : `▼${Math.abs(trend)}`}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
 
                         <TableCell>
@@ -226,6 +252,11 @@ export default async function RankingPage({ params }: Props) {
             )}
           </CardContent>
         </Card>
+
+        {/* Position history */}
+        {rankingHistory && (
+          <RankingHistoryTable history={rankingHistory} currentUserId={session.user.id} />
+        )}
 
         {/* Legend */}
         <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-slate-500">

@@ -7,7 +7,21 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: { default: 'Energol', template: '%s | Energol' },
-  description: 'O melhor SaaS de bolão de futebol do Brasil',
+  description: 'Bolão de futebol online',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    title: 'Energol',
+    statusBarStyle: 'black-translucent',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+  },
+};
+
+export const viewport = {
+  themeColor: '#0f172a',
+  colorScheme: 'dark',
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
