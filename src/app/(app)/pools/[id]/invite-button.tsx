@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link2, Copy, Check, RefreshCw, Trash2, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -8,45 +8,44 @@ import { Modal } from '@/components/ui/modal';
 export function InviteButton({ poolId }: { poolId: string }) {
   const [open, setOpen] = useState(false);
 
-  // Individual invite state
   const [individualLink, setIndividualLink] = useState('');
   const [copiedIndividual, setCopiedIndividual] = useState(false);
   const [loadingIndividual, setLoadingIndividual] = useState(false);
 
-  // General invite state
   const [generalLink, setGeneralLink] = useState<string | null>(null);
-  const [generalCode, setGeneralCode] = useState<string | null>(null);
   const [copiedGeneral, setCopiedGeneral] = useState(false);
   const [loadingGeneral, setLoadingGeneral] = useState(false);
   const [loadingRevoke, setLoadingRevoke] = useState(false);
   const [generalLoaded, setGeneralLoaded] = useState(false);
 
-  const openModal = async () => {
-    setOpen(true);
-    if (!generalLoaded) {
-      setLoadingGeneral(true);
-      try {
-        const res = await fetch(`/api/pools/${poolId}/invite-code`);
-        const data = await res.json();
-        setGeneralCode(data.code ?? null);
+  useEffect(() => {
+    if (!open || generalLoaded) return;
+
+    setLoadingGeneral(true);
+    fetch(`/api/pools/${poolId}/invite-code`)
+      .then((r) => r.json())
+      .then((data) => {
         setGeneralLink(data.link ?? null);
         setGeneralLoaded(true);
-      } finally {
-        setLoadingGeneral(false);
-      }
-    }
+      })
+      .finally(() => setLoadingGeneral(false));
+  }, [open, generalLoaded, poolId]);
+
+  const handleClose = () => {
+    setOpen(false);
+    setIndividualLink('');
   };
 
-  const generateIndividual = async () => {
+  const generateIndividual = () => {
     setLoadingIndividual(true);
-    const res = await fetch(`/api/pools/${poolId}/invite`, {
+    fetch(`/api/pools/${poolId}/invite`, {
       method: 'POST',
       body: '{}',
       headers: { 'Content-Type': 'application/json' },
-    });
-    const data = await res.json();
-    setIndividualLink(data.link);
-    setLoadingIndividual(false);
+    })
+      .then((r) => r.json())
+      .then((data) => setIndividualLink(data.link))
+      .finally(() => setLoadingIndividual(false));
   };
 
   const copyIndividual = () => {
@@ -55,21 +54,19 @@ export function InviteButton({ poolId }: { poolId: string }) {
     setTimeout(() => setCopiedIndividual(false), 2000);
   };
 
-  const generateGeneral = async () => {
+  const generateGeneral = () => {
     setLoadingGeneral(true);
-    const res = await fetch(`/api/pools/${poolId}/invite-code`, { method: 'POST' });
-    const data = await res.json();
-    setGeneralCode(data.code);
-    setGeneralLink(data.link);
-    setLoadingGeneral(false);
+    fetch(`/api/pools/${poolId}/invite-code`, { method: 'POST' })
+      .then((r) => r.json())
+      .then((data) => setGeneralLink(data.link))
+      .finally(() => setLoadingGeneral(false));
   };
 
-  const revokeGeneral = async () => {
+  const revokeGeneral = () => {
     setLoadingRevoke(true);
-    await fetch(`/api/pools/${poolId}/invite-code`, { method: 'DELETE' });
-    setGeneralCode(null);
-    setGeneralLink(null);
-    setLoadingRevoke(false);
+    fetch(`/api/pools/${poolId}/invite-code`, { method: 'DELETE' })
+      .then(() => setGeneralLink(null))
+      .finally(() => setLoadingRevoke(false));
   };
 
   const copyGeneral = () => {
@@ -81,21 +78,20 @@ export function InviteButton({ poolId }: { poolId: string }) {
 
   return (
     <>
-      <Button variant="secondary" size="sm" onClick={openModal}>
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
         <Link2 size={14} /> Convidar
       </Button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Convidar para o bolão">
+      <Modal open={open} onClose={handleClose} title="Convidar para o bolão">
         <div className="space-y-6">
 
-          {/* Individual */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Link2 size={13} className="text-slate-400" />
               <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Convite Individual</span>
             </div>
             <p className="text-xs text-slate-500 mb-3">
-              Gera um link de uso único válido por 7 dias. Quem clicar entra direto.
+              Link de uso único válido por 7 dias. Quem clicar entra direto.
             </p>
             {individualLink ? (
               <div className="flex gap-2">
@@ -120,14 +116,13 @@ export function InviteButton({ poolId }: { poolId: string }) {
 
           <div className="border-t border-slate-800" />
 
-          {/* General */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Globe size={13} className="text-brand-400" />
               <span className="text-xs font-semibold text-slate-300 uppercase tracking-wide">Link Geral</span>
             </div>
             <p className="text-xs text-slate-500 mb-3">
-              Qualquer pessoa com este link pode <strong className="text-slate-400">solicitar entrada</strong>. Você aprova ou recusa cada solicitação.
+              Qualquer pessoa solicita entrada e você <strong className="text-slate-400">aprova ou recusa</strong> em Participantes.
             </p>
 
             {loadingGeneral && !generalLoaded ? (
@@ -165,6 +160,7 @@ export function InviteButton({ poolId }: { poolId: string }) {
               </Button>
             )}
           </div>
+
         </div>
       </Modal>
     </>
