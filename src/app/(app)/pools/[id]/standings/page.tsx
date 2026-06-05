@@ -8,7 +8,7 @@ import { fetchStandings, type FDStandingEntry, type FDStandingTable } from '@/li
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Tabela do Campeonato' };
 
@@ -160,23 +160,42 @@ export default async function StandingsPage({ params }: Props) {
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect(`/pools/${id}`);
 
-  const wcGame = await prisma.game.findFirst({
-    where: { round: { poolId: id }, group: { not: null } },
+  const wcRound = await prisma.round.findFirst({
+    where: {
+      poolId: id,
+      OR: [
+        { name: { contains: 'Fase' } },
+        { name: { contains: 'Final' } },
+        { name: { contains: 'Oitavas' } },
+        { name: { contains: 'Quartas' } },
+        { name: { contains: 'Semifinais' } },
+        { name: { contains: 'Rodada de 32' } },
+      ],
+    },
     select: { id: true },
   });
-  const competition: 'BSA' | 'WC' = wcGame ? 'WC' : 'BSA';
+
+  const anyRound = await prisma.round.findFirst({
+    where: { poolId: id },
+    select: { id: true },
+  });
+
+  const competition: 'BSA' | 'WC' | null = !anyRound ? null : wcRound ? 'WC' : 'BSA';
 
   let standings: FDStandingTable[] = [];
-  let fetchError = '';
 
-  try {
-    const all = await fetchStandings(competition);
-    standings = all.filter((s) => s.type === 'TOTAL');
-  } catch {
-    fetchError = 'Não foi possível carregar a tabela. Verifique a chave da API ou tente novamente.';
+  if (competition) {
+    try {
+      const all = await fetchStandings(competition);
+      standings = all.filter((s) => s.type === 'TOTAL');
+    } catch {
+      // show blank on API error
+    }
   }
 
   const isGrouped = standings.some((s) => s.group !== null);
+  // competition is non-null whenever standings is populated (we skip fetch when null)
+  const comp = (competition ?? 'BSA') as 'BSA' | 'WC';
 
   return (
     <div>
@@ -193,14 +212,7 @@ export default async function StandingsPage({ params }: Props) {
       />
 
       <div className="p-4 md:p-6 space-y-4">
-        {fetchError ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <AlertCircle size={28} className="mx-auto mb-2 text-slate-600" />
-              <p className="text-sm text-slate-500">{fetchError}</p>
-            </CardContent>
-          </Card>
-        ) : standings.length === 0 ? (
+        {standings.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-slate-500 text-sm">
               Tabela ainda não disponível para esta competição
@@ -217,14 +229,14 @@ export default async function StandingsPage({ params }: Props) {
                     </span>
                     <div className="flex-1 h-px bg-slate-800" />
                   </div>
-                  <StandingsTable table={s.table} competition={competition} isGroup />
+                  <StandingsTable table={s.table} competition={comp} isGroup />
                 </div>
               ))
             ) : (
-              <StandingsTable table={standings[0].table} competition={competition} />
+              <StandingsTable table={standings[0].table} competition={comp} />
             )}
 
-            <ZoneLegend competition={competition} />
+            <ZoneLegend competition={comp} />
             <p className="text-xs text-slate-600 text-center">
               J = Jogos · V = Vitórias · E = Empates · D = Derrotas · GP = Gols pró · GC = Gols contra · SG = Saldo de gols
             </p>
