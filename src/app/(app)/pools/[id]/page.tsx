@@ -71,26 +71,28 @@ export default async function PoolPage({ params }: Props) {
         description={pool.description ?? undefined}
         actions={
           <div className="flex items-center gap-2">
-            <Link href={`/pools/${id}/standings`}>
-              <Button variant="ghost" size="sm">
-                <BarChart2 size={14} />
-                <span className="hidden md:inline">Tabela</span>
-              </Button>
-            </Link>
-            <Link href={`/pools/${id}/scorers`}>
-              <Button variant="ghost" size="sm">
-                <Swords size={14} />
-                <span className="hidden md:inline">Artilharia</span>
-              </Button>
-            </Link>
-            <Link href={`/pools/${id}/rules`}>
-              <Button variant="ghost" size="sm">
-                <BookOpen size={14} />
-                <span className="hidden md:inline">Regras</span>
-              </Button>
-            </Link>
+            {/* Navegação: visível só no desktop */}
+            <div className="hidden md:flex items-center gap-2">
+              <Link href={`/pools/${id}/standings`}>
+                <Button variant="ghost" size="sm">
+                  <BarChart2 size={14} /> Tabela
+                </Button>
+              </Link>
+              <Link href={`/pools/${id}/scorers`}>
+                <Button variant="ghost" size="sm">
+                  <Swords size={14} /> Artilharia
+                </Button>
+              </Link>
+              <Link href={`/pools/${id}/rules`}>
+                <Button variant="ghost" size="sm">
+                  <BookOpen size={14} /> Regras
+                </Button>
+              </Link>
+            </div>
+            {/* Convidar: visível para o dono */}
             {owner && <InviteButton poolId={id} />}
-            {owner && <OwnerActionsMenu poolId={id} poolName={pool.name} />}
+            {/* ⋮ no mobile (todos) / botões completos no desktop (só dono) */}
+            <OwnerActionsMenu poolId={id} poolName={pool.name} isOwner={owner} />
           </div>
         }
       />

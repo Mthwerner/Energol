@@ -3,16 +3,17 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, UserMinus, Settings, Trash2 } from 'lucide-react';
+import { MoreVertical, UserMinus, Settings, Trash2, BarChart2, Swords, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 
 interface Props {
   poolId: string;
   poolName: string;
+  isOwner: boolean;
 }
 
-export function OwnerActionsMenu({ poolId, poolName }: Props) {
+export function OwnerActionsMenu({ poolId, poolName, isOwner }: Props) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -46,22 +47,24 @@ export function OwnerActionsMenu({ poolId, poolName }: Props) {
 
   return (
     <>
-      {/* Desktop: botões completos */}
-      <div className="hidden md:flex items-center gap-2">
-        <Link href={`/pools/${poolId}/participants`}>
-          <Button variant="secondary" size="sm">
-            <UserMinus size={14} /> Participantes
+      {/* Desktop: botões de gerenciamento (só dono) */}
+      {isOwner && (
+        <div className="hidden md:flex items-center gap-2">
+          <Link href={`/pools/${poolId}/participants`}>
+            <Button variant="secondary" size="sm">
+              <UserMinus size={14} /> Participantes
+            </Button>
+          </Link>
+          <Link href={`/pools/${poolId}/rounds`}>
+            <Button variant="secondary" size="sm">
+              <Settings size={14} /> Gerenciar
+            </Button>
+          </Link>
+          <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
+            <Trash2 size={14} /> Excluir
           </Button>
-        </Link>
-        <Link href={`/pools/${poolId}/rounds`}>
-          <Button variant="secondary" size="sm">
-            <Settings size={14} /> Gerenciar
-          </Button>
-        </Link>
-        <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
-          <Trash2 size={14} /> Excluir
-        </Button>
-      </div>
+        </div>
+      )}
 
       {/* Mobile: dropdown ⋮ */}
       <div className="relative md:hidden" ref={menuRef}>
@@ -71,27 +74,30 @@ export function OwnerActionsMenu({ poolId, poolName }: Props) {
 
         {menuOpen && (
           <div className="absolute right-0 top-full mt-1 z-40 w-48 rounded-lg border border-slate-700 bg-slate-900 shadow-xl py-1 animate-fade-in">
-            <Link
-              href={`/pools/${poolId}/participants`}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              <UserMinus size={14} className="shrink-0" /> Participantes
+            <Link href={`/pools/${poolId}/standings`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+              <BarChart2 size={14} className="shrink-0" /> Tabela
             </Link>
-            <Link
-              href={`/pools/${poolId}/rounds`}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Settings size={14} className="shrink-0" /> Gerenciar
+            <Link href={`/pools/${poolId}/scorers`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+              <Swords size={14} className="shrink-0" /> Artilharia
             </Link>
-            <div className="border-t border-slate-800 my-1" />
-            <button
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-800 transition-colors"
-              onClick={() => { setMenuOpen(false); setDeleteOpen(true); }}
-            >
-              <Trash2 size={14} className="shrink-0" /> Excluir bolão
-            </button>
+            <Link href={`/pools/${poolId}/rules`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+              <BookOpen size={14} className="shrink-0" /> Regras
+            </Link>
+            {isOwner && (
+              <>
+                <div className="border-t border-slate-800 my-1" />
+                <Link href={`/pools/${poolId}/participants`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  <UserMinus size={14} className="shrink-0" /> Participantes
+                </Link>
+                <Link href={`/pools/${poolId}/rounds`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  <Settings size={14} className="shrink-0" /> Gerenciar
+                </Link>
+                <div className="border-t border-slate-800 my-1" />
+                <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-800 transition-colors" onClick={() => { setMenuOpen(false); setDeleteOpen(true); }}>
+                  <Trash2 size={14} className="shrink-0" /> Excluir bolão
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
