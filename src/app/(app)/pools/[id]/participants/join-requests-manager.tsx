@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 interface JoinRequest {
   id: string;
   user: { id: string; name: string; email: string };
-  createdAt: string | Date;
+  createdAt: string;
 }
 
 interface Props {

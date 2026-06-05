@@ -24,7 +24,7 @@ export default async function ParticipantsPage({ params }: Props) {
     getPool(id),
     isOwner(session.user.id, id),
     listParticipants(id),
-    listPendingRequests(id),
+    listPendingRequests(id).catch(() => []),
   ]);
 
   if (!pool || !pool.isActive) notFound();
@@ -44,7 +44,14 @@ export default async function ParticipantsPage({ params }: Props) {
         }
       />
       <div className="p-4 md:p-6 space-y-8">
-        <JoinRequestsManager poolId={id} initialRequests={pendingRequests as any} />
+        <JoinRequestsManager
+          poolId={id}
+          initialRequests={pendingRequests.map((r) => ({
+            id: r.id,
+            user: r.user,
+            createdAt: r.createdAt.toISOString(),
+          }))}
+        />
         <ParticipantsManager
           poolId={id}
           initialParticipants={participants}
