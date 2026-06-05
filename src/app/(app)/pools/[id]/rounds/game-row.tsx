@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 import { GameStatusBadge } from '@/components/ui/badge';
@@ -31,6 +31,7 @@ export function GameRow({ game, onResultSet }: Props) {
   const [home, setHome] = useState(String(game.homeScore ?? ''));
   const [away, setAway] = useState(String(game.awayScore ?? ''));
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const save = async () => {
     const hs = parseInt(home);
@@ -47,7 +48,8 @@ export function GameRow({ game, onResultSet }: Props) {
 
     if (res.ok) {
       onResultSet(hs, as);
-      setOpen(false);
+      setSaved(true);
+      setTimeout(() => { setSaved(false); setOpen(false); }, 1200);
     }
   };
 
@@ -75,8 +77,9 @@ export function GameRow({ game, onResultSet }: Props) {
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-3">
           <GameStatusBadge status={game.status} />
-          <Button size="sm" variant="ghost" onClick={() => setOpen(true)} className="h-7 px-2">
-            <CheckCircle2 size={14} />
+          <Button size="sm" variant="secondary" onClick={() => setOpen(true)} className="h-7 text-xs">
+            <CheckCircle2 size={13} />
+            {game.status === 'FINISHED' ? 'Editar' : 'Resultado'}
           </Button>
         </div>
       </div>
@@ -118,9 +121,16 @@ export function GameRow({ game, onResultSet }: Props) {
               />
             </div>
           </div>
+          {saved && (
+            <div className="flex items-center justify-center gap-2 rounded-md bg-emerald-950 border border-emerald-800 px-3 py-2 text-sm text-emerald-300">
+              <Check size={14} /> Resultado salvo!
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
-            <Button onClick={save} loading={saving} className="flex-1">Salvar resultado</Button>
-            <Button variant="secondary" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={save} loading={saving} disabled={saved} className="flex-1">
+              {saved ? <><Check size={14} /> Salvo!</> : 'Salvar resultado'}
+            </Button>
+            <Button variant="secondary" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
           </div>
         </div>
       </Modal>

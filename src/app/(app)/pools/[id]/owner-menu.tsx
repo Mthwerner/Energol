@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, UserMinus, Settings, Trash2, BarChart2, Swords, BookOpen } from 'lucide-react';
+import { MoreVertical, UserMinus, Settings, Wrench, Trash2, BarChart2, Swords, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 
@@ -57,7 +57,12 @@ export function OwnerActionsMenu({ poolId, poolName, isOwner }: Props) {
           </Link>
           <Link href={`/pools/${poolId}/rounds`}>
             <Button variant="secondary" size="sm">
-              <Settings size={14} /> Gerenciar
+              <Wrench size={14} /> Rodadas
+            </Button>
+          </Link>
+          <Link href={`/pools/${poolId}/settings`}>
+            <Button variant="secondary" size="sm">
+              <Settings size={14} /> Configurações
             </Button>
           </Link>
           <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>
@@ -90,7 +95,10 @@ export function OwnerActionsMenu({ poolId, poolName, isOwner }: Props) {
                   <UserMinus size={14} className="shrink-0" /> Participantes
                 </Link>
                 <Link href={`/pools/${poolId}/rounds`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
-                  <Settings size={14} className="shrink-0" /> Gerenciar
+                  <Wrench size={14} className="shrink-0" /> Rodadas
+                </Link>
+                <Link href={`/pools/${poolId}/settings`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+                  <Settings size={14} className="shrink-0" /> Configurações
                 </Link>
                 <div className="border-t border-slate-800 my-1" />
                 <button className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-800 transition-colors" onClick={() => { setMenuOpen(false); setDeleteOpen(true); }}>

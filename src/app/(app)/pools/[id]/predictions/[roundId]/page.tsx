@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { getPool, isParticipant } from '@/services/pool.service';
 import { getRound } from '@/services/round.service';
-import { getUserPredictionsForRound } from '@/services/prediction.service';
+import { getUserPredictionsForRound, getRoundParticipantsPredictions } from '@/services/prediction.service';
 import { fetchOddsEvents, type OddsEvent } from '@/lib/odds';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { RoundStatusBadge } from '@/components/ui/badge';
 import { ArrowLeft } from 'lucide-react';
 import { PredictionsForm } from '../predictions-form';
 import { RoundResults } from './round-results';
+import { ParticipantsPredictions } from './participants-predictions';
 import type { Metadata } from 'next';
 
 interface Props { params: Promise<{ id: string; roundId: string }> }
@@ -36,7 +37,12 @@ export default async function RoundPredictionsPage({ params }: Props) {
   if (!member) redirect(`/pools/${id}`);
   if (!round || round.poolId !== id) notFound();
 
-  const userPredictions = await getUserPredictionsForRound(session.user.id, roundId);
+  const isFinished = round.status === 'FINISHED';
+
+  const [userPredictions, participantsPredictions] = await Promise.all([
+    getUserPredictionsForRound(session.user.id, roundId),
+    isFinished ? getRoundParticipantsPredictions(roundId, id) : Promise.resolve([]),
+  ]);
 
   const predMap: Record<string, { homeScore: number; awayScore: number }> = {};
   const pointsMap: Record<string, number | null> = {};
@@ -69,7 +75,7 @@ export default async function RoundPredictionsPage({ params }: Props) {
           </div>
         }
       />
-      <div className="p-4 md:p-6">
+      <div className="p-4 md:p-6 space-y-4">
         {round.status === 'OPEN' ? (
           <PredictionsForm
             poolId={id}
@@ -78,11 +84,29 @@ export default async function RoundPredictionsPage({ params }: Props) {
             oddsEvents={oddsEvents}
           />
         ) : (
-          <RoundResults
-            games={round.games}
-            predictions={predMap}
-            predictionPoints={pointsMap}
-          />
+          <>
+            <RoundResults
+              games={round.games}
+              predictions={predMap}
+              predictionPoints={pointsMap}
+            />
+            {isFinished && participantsPredictions.length > 0 && (
+              <ParticipantsPredictions
+                participants={participantsPredictions}
+                games={round.games.map((g) => ({
+                  id: g.id,
+                  homeTeam: g.homeTeam,
+                  awayTeam: g.awayTeam,
+                  homeCrest: g.homeCrest,
+                  awayCrest: g.awayCrest,
+                  homeScore: g.homeScore,
+                  awayScore: g.awayScore,
+                  status: g.status,
+                }))}
+                currentUserId={session.user.id}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
