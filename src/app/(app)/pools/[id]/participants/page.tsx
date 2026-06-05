@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { auth } from '@/lib/auth';
 import { getPool, isOwner } from '@/services/pool.service';
 import { listParticipants } from '@/services/participant.service';
+import { listPendingRequests } from '@/services/join-request.service';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { ParticipantsManager } from './participants-manager';
+import { JoinRequestsManager } from './join-requests-manager';
 
 export const metadata: Metadata = { title: 'Gerenciar Participantes' };
 
@@ -18,10 +20,11 @@ export default async function ParticipantsPage({ params }: Props) {
   if (!session) redirect('/login');
 
   const { id } = await params;
-  const [pool, owner, participants] = await Promise.all([
+  const [pool, owner, participants, pendingRequests] = await Promise.all([
     getPool(id),
     isOwner(session.user.id, id),
     listParticipants(id),
+    listPendingRequests(id),
   ]);
 
   if (!pool || !pool.isActive) notFound();
@@ -40,7 +43,8 @@ export default async function ParticipantsPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="p-4 md:p-6">
+      <div className="p-4 md:p-6 space-y-8">
+        <JoinRequestsManager poolId={id} initialRequests={pendingRequests as any} />
         <ParticipantsManager
           poolId={id}
           initialParticipants={participants}

@@ -20,6 +20,12 @@ enum InviteStatus {
   EXPIRED
 }
 
+enum JoinRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum RoundStatus {
   OPEN
   IN_PROGRESS
@@ -49,6 +55,7 @@ model User {
   participants Participant[]
   predictions  Prediction[]
   invitesSent  Invite[]      @relation("InviteSender")
+  joinRequests JoinRequest[]
 }
 
 model Pool {
@@ -64,6 +71,8 @@ model Pool {
   participants Participant[]
   invites      Invite[]
   rounds       Round[]
+  joinRequests JoinRequest[]
+  inviteCode   String?       @unique
 }
 
 model Participant {
@@ -163,6 +172,20 @@ model ParticipantScore {
   round       Round       @relation(fields: [roundId], references: [id])
 
   @@unique([participantId, roundId])
+}
+
+model JoinRequest {
+  id        String            @id @default(cuid())
+  poolId    String
+  userId    String
+  status    JoinRequestStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  pool Pool @relation(fields: [poolId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, poolId])
 }
 
 model ResultCorrectionLog {

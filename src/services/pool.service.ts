@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { nanoid } from 'nanoid';
 
 export async function listUserPools(userId: string) {
   return prisma.pool.findMany({
@@ -71,4 +72,40 @@ export async function isParticipant(userId: string, poolId: string) {
 export async function isOwner(userId: string, poolId: string) {
   const pool = await prisma.pool.findUnique({ where: { id: poolId } });
   return pool?.ownerId === userId;
+}
+
+export async function getPoolByInviteCode(code: string) {
+  return prisma.pool.findUnique({
+    where: { inviteCode: code },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      isActive: true,
+      ownerId: true,
+      owner: { select: { name: true } },
+    },
+  });
+}
+
+export async function generateInviteCode(poolId: string, ownerId: string) {
+  const pool = await prisma.pool.findUnique({ where: { id: poolId } });
+  if (!pool || pool.ownerId !== ownerId) throw new Error('Não autorizado');
+  const code = nanoid(10);
+  return prisma.pool.update({ where: { id: poolId }, data: { inviteCode: code } });
+}
+
+export async function revokeInviteCode(poolId: string, ownerId: string) {
+  const pool = await prisma.pool.findUnique({ where: { id: poolId } });
+  if (!pool || pool.ownerId !== ownerId) throw new Error('Não autorizado');
+  return prisma.pool.update({ where: { id: poolId }, data: { inviteCode: null } });
+}
+
+export async function getInviteCode(poolId: string, ownerId: string) {
+  const pool = await prisma.pool.findUnique({
+    where: { id: poolId },
+    select: { inviteCode: true, ownerId: true },
+  });
+  if (!pool || pool.ownerId !== ownerId) throw new Error('Não autorizado');
+  return pool.inviteCode;
 }
