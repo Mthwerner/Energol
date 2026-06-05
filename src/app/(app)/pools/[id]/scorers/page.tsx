@@ -8,7 +8,7 @@ import { fetchScorers, type FDScorer } from '@/lib/football-data';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Artilharia' };
 
@@ -79,19 +79,36 @@ export default async function ScorersPage({ params }: Props) {
   if (!pool || !pool.isActive) notFound();
   if (!member) redirect(`/pools/${id}`);
 
-  const wcGame = await prisma.game.findFirst({
-    where: { round: { poolId: id }, group: { not: null } },
+  const wcRound = await prisma.round.findFirst({
+    where: {
+      poolId: id,
+      OR: [
+        { name: { contains: 'Fase' } },
+        { name: { contains: 'Final' } },
+        { name: { contains: 'Oitavas' } },
+        { name: { contains: 'Quartas' } },
+        { name: { contains: 'Semifinais' } },
+        { name: { contains: 'Rodada de 32' } },
+      ],
+    },
     select: { id: true },
   });
-  const competition: 'BSA' | 'WC' = wcGame ? 'WC' : 'BSA';
+
+  const anyRound = await prisma.round.findFirst({
+    where: { poolId: id },
+    select: { id: true },
+  });
+
+  const competition: 'BSA' | 'WC' | null = !anyRound ? null : wcRound ? 'WC' : 'BSA';
 
   let scorers: FDScorer[] = [];
-  let fetchError = '';
 
-  try {
-    scorers = await fetchScorers(competition, 20);
-  } catch {
-    fetchError = 'Não foi possível carregar a artilharia. Verifique a chave da API ou tente novamente.';
+  if (competition) {
+    try {
+      scorers = await fetchScorers(competition, 20);
+    } catch {
+      // show blank on API error
+    }
   }
 
   return (
@@ -109,14 +126,7 @@ export default async function ScorersPage({ params }: Props) {
       />
 
       <div className="p-4 md:p-6 space-y-4">
-        {fetchError ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <AlertCircle size={28} className="mx-auto mb-2 text-slate-600" />
-              <p className="text-sm text-slate-500">{fetchError}</p>
-            </CardContent>
-          </Card>
-        ) : scorers.length === 0 ? (
+        {scorers.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-slate-500 text-sm">
               Artilharia ainda não disponível para esta competição
