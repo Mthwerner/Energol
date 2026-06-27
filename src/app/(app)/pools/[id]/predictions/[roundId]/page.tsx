@@ -5,6 +5,7 @@ import { getPool, isParticipant } from '@/services/pool.service';
 import { getRound } from '@/services/round.service';
 import { getUserPredictionsForRound, getRoundParticipantsPredictions } from '@/services/prediction.service';
 import { fetchOddsEvents, type OddsEvent } from '@/lib/odds';
+import { calculateScore } from '@/domain/scoring';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { RoundStatusBadge } from '@/components/ui/badge';
@@ -51,7 +52,13 @@ export default async function RoundPredictionsPage({ params }: Props) {
   for (const p of userPredictions) {
     predMap[p.gameId] = { homeScore: p.homeScore, awayScore: p.awayScore };
     pointsMap[p.gameId] = p.points;
-    basePointsMap[p.gameId] = p.basePoints;
+  }
+  // Compute base points from game scores (avoids dependency on DB basePoints field)
+  for (const game of round.games) {
+    const pred = predMap[game.id];
+    if (pred && game.homeScore !== null && game.awayScore !== null) {
+      basePointsMap[game.id] = calculateScore(pred, { homeScore: game.homeScore, awayScore: game.awayScore }).points;
+    }
   }
 
   // Fetch odds only for open/in-progress rounds
