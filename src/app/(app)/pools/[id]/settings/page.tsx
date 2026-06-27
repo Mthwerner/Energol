@@ -2,12 +2,11 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/lib/auth';
-import { getPool, isOwner, isKnockoutWeightLocked } from '@/services/pool.service';
+import { getPool, isOwner } from '@/services/pool.service';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { SettingsForm } from './settings-form';
-import { KnockoutWeightForm } from './knockout-weight-form';
 
 export const metadata: Metadata = { title: 'Configurações do Bolão' };
 
@@ -18,10 +17,9 @@ export default async function SettingsPage({ params }: Props) {
   if (!session) redirect('/login');
 
   const { id } = await params;
-  const [pool, owner, locked] = await Promise.all([
+  const [pool, owner] = await Promise.all([
     getPool(id),
     isOwner(session.user.id, id),
-    isKnockoutWeightLocked(id),
   ]);
 
   if (!pool || !pool.isActive) notFound();
@@ -40,27 +38,11 @@ export default async function SettingsPage({ params }: Props) {
           </Link>
         }
       />
-      <div className="p-4 md:p-6 space-y-8">
-        {/* Configurações gerais do bolão (nome e descrição) */}
+      <div className="p-4 md:p-6">
         <SettingsForm
           poolId={id}
           initialName={pool.name}
           initialDescription={pool.description ?? ''}
-        />
-
-        {/* Peso por fase no mata-mata — só tem efeito em bolões da Copa do Mundo */}
-        <KnockoutWeightForm
-          poolId={id}
-          initialConfig={{
-            knockoutWeightEnabled: pool.knockoutWeightEnabled,
-            weightLast32:          pool.weightLast32,
-            weightLast16:          pool.weightLast16,
-            weightQuarter:         pool.weightQuarter,
-            weightSemi:            pool.weightSemi,
-            weightThird:           pool.weightThird,
-            weightFinal:           pool.weightFinal,
-          }}
-          locked={locked}
         />
       </div>
     </div>

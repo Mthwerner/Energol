@@ -6,7 +6,7 @@ import { getPool, isParticipant } from '@/services/pool.service';
 import { Header } from '@/components/layout/header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Clock, Trophy, Target, Star, Minus, HelpCircle, ListOrdered, Timer } from 'lucide-react';
+import { ArrowLeft, Clock, Trophy, Target, Star, Minus, HelpCircle, ListOrdered } from 'lucide-react';
 
 export const metadata: Metadata = { title: 'Regras do Bolão' };
 
@@ -124,26 +124,6 @@ export default async function RulesPage({ params }: Props) {
           </CardContent>
         </Card>
 
-        {/* Prorrogação e Pênaltis */}
-        <Card>
-          <CardHeader className="pt-5 pb-2">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Timer size={15} className="text-brand-400" />
-              Prorrogação e Pênaltis
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-400">
-            <p>Nas fases eliminatórias, jogos empatados ao fim dos 90 minutos podem ir a <span className="text-slate-200 font-medium">prorrogação</span> e/ou <span className="text-slate-200 font-medium">pênaltis</span>.</p>
-            <p>Os palpites são sempre comparados com o <span className="text-slate-200 font-medium">placar ao fim do tempo regulamentar (90 min)</span>. Gols marcados na prorrogação e o resultado dos pênaltis <span className="text-slate-200 font-medium">não são considerados</span> na pontuação.</p>
-            <div className="rounded-lg border border-slate-800 bg-slate-900/50 px-4 py-3 space-y-1.5 text-xs">
-              <p className="text-slate-300 font-medium">Exemplos</p>
-              <p>Palpite <span className="text-slate-200">1-1</span> · Jogo termina 1-1 nos 90 min e vai a pênaltis → <span className="text-emerald-400 font-semibold">10 pts</span> (placar exato)</p>
-              <p>Palpite <span className="text-slate-200">2-1</span> · Jogo termina 1-1 nos 90 min e o time da casa vence nos pênaltis → <span className="text-red-400 font-semibold">0 pts</span> (placar errado)</p>
-              <p>Palpite <span className="text-slate-200">0-0</span> · Jogo termina 0-0 nos 90 min (qualquer resultado na prorrogação/pênaltis) → <span className="text-emerald-400 font-semibold">10 pts</span></p>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Critérios de desempate */}
         <Card>
           <CardHeader className="pt-5 pb-2">
@@ -181,7 +161,7 @@ export default async function RulesPage({ params }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-slate-400">
-            <p>Os resultados são inseridos manualmente pelo administrador do bolão após o encerramento de cada jogo.</p>
+            <p>Os resultados são atualizados automaticamente após o encerramento de cada jogo.</p>
             <p>Caso haja correção de placar, a pontuação é recalculada automaticamente para todos os participantes.</p>
             <p>Rodadas encerradas ficam visíveis na seção <span className="text-slate-200 font-medium">Finalizadas</span> após confirmação dos resultados.</p>
           </CardContent>

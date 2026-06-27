@@ -8,11 +8,8 @@ import { Header } from '@/components/layout/header';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Medal, Bell, Clock, LayoutList } from 'lucide-react';
-import { UserAvatar } from '@/components/ui/user-avatar';
+import { ArrowLeft, Medal, Bell, Clock } from 'lucide-react';
 import { RankingHistoryTable } from './ranking-history';
-import { ShareButton } from './share-button';
-import { RankingExportButton } from './ranking-export';
 import { formatShortDateTime } from '@/lib/utils';
 
 export const metadata: Metadata = { title: 'Classificação' };
@@ -74,32 +71,11 @@ export default async function RankingPage({ params }: Props) {
         title="Classificação"
         description={pool.name}
         actions={
-          <div className="flex items-center gap-1.5">
-            {ranking.length > 0 && (
-              <>
-                <Link href={`/pools/${id}/round-ranking`}>
-                  <Button variant="secondary" size="sm">
-                    <LayoutList size={14} />
-                    <span className="hidden sm:inline">Por rodada</span>
-                  </Button>
-                </Link>
-                <RankingExportButton
-                  poolName={pool.name}
-                  ranking={ranking.map((e) => ({ position: e.position, name: e.name, totalPoints: e.totalPoints }))}
-                />
-                <ShareButton
-                  poolName={pool.name}
-                  ranking={ranking.map((e) => ({ position: e.position, name: e.name, totalPoints: e.totalPoints }))}
-                />
-              </>
-            )}
-            <Link href={`/pools/${id}`}>
-              <Button variant="ghost" size="sm">
-                <ArrowLeft size={14} />
-                <span className="hidden sm:inline">Voltar</span>
-              </Button>
-            </Link>
-          </div>
+          <Link href={`/pools/${id}`}>
+            <Button variant="ghost" size="sm">
+              <ArrowLeft size={14} /> Voltar
+            </Button>
+          </Link>
         }
       />
 
@@ -221,7 +197,6 @@ export default async function RankingPage({ params }: Props) {
 
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <UserAvatar avatar={entry.avatar} name={entry.name} size="xs" />
                             <span className={isMe ? 'font-semibold text-brand-300' : 'text-slate-200'}>
                               {entry.name}
                               {isMe && <span className="ml-1.5 text-xs text-slate-500">(você)</span>}

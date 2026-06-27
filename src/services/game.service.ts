@@ -4,7 +4,7 @@ import { GameStatus } from '@prisma/client';
 export async function listGames(roundId: string) {
   return prisma.game.findMany({
     where: { roundId },
-    orderBy: [{ matchDate: 'asc' }, { id: 'asc' }],
+    orderBy: { matchDate: 'asc' },
   });
 }
 

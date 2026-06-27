@@ -1,7 +1,6 @@
 export interface RankingEntry {
   userId: string;
   name: string;
-  avatar: string | null;
   totalPoints: number;
   exactScores: number;
   resultDiffScores: number;

@@ -13,8 +13,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { InviteButton } from './invite-button';
 import { OwnerActionsMenu } from './owner-menu';
 import { PoolRoundsSection } from './pool-rounds-section';
-import { OnboardingBanner } from './onboarding-banner';
-import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen, BarChart2, Swords, PieChart, History } from 'lucide-react';
+import { Users, Trophy, Target, Settings, ArrowRight, UserMinus, BookOpen, BarChart2, Swords } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -64,7 +63,6 @@ export default async function PoolPage({ params }: Props) {
   const otherOpenRounds = openRounds.filter((r) => r.id !== featuredRoundBase?.id);
 
   const myRank = ranking.find((r) => r.userId === session.user.id);
-  const hasPredictions = featuredPredictions.length > 0 || finishedRounds.length > 0;
 
   return (
     <div>
@@ -85,11 +83,6 @@ export default async function PoolPage({ params }: Props) {
                   <Swords size={14} /> Artilharia
                 </Button>
               </Link>
-              <Link href={`/pools/${id}/stats`}>
-                <Button variant="ghost" size="sm">
-                  <PieChart size={14} /> Estatísticas
-                </Button>
-              </Link>
               <Link href={`/pools/${id}/rules`}>
                 <Button variant="ghost" size="sm">
                   <BookOpen size={14} /> Regras
@@ -105,8 +98,6 @@ export default async function PoolPage({ params }: Props) {
       />
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        <OnboardingBanner poolId={id} hasPredictions={hasPredictions} />
-
         {/* My stats */}
         {myRank && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -142,18 +133,11 @@ export default async function PoolPage({ params }: Props) {
             <CardHeader className="pt-5">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm">Classificação</CardTitle>
-                <div className="flex items-center gap-1">
-                  <Link href={`/pools/${id}/my-history`}>
-                    <Button variant="ghost" size="sm" className="text-xs text-slate-500">
-                      <History size={12} /> Histórico
-                    </Button>
-                  </Link>
-                  <Link href={`/pools/${id}/ranking`}>
-                    <Button variant="ghost" size="sm" className="text-xs">
-                      Ver completa <ArrowRight size={12} />
-                    </Button>
-                  </Link>
-                </div>
+                <Link href={`/pools/${id}/ranking`}>
+                  <Button variant="ghost" size="sm" className="text-xs">
+                    Ver completa <ArrowRight size={12} />
+                  </Button>
+                </Link>
               </div>
             </CardHeader>
             <CardContent className="p-0">

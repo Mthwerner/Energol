@@ -11,52 +11,45 @@ export async function getPoolRanking(poolId: string) {
   const participants = await prisma.participant.findMany({
     where: { poolId, isActive: true },
     include: {
-      user: { select: { id: true, name: true, avatar: true } },
+      user: { select: { id: true, name: true } },
       scores: { select: { totalPoints: true, exactScores: true, correctResults: true } },
     },
   });
 
-  // Busca predições com basePoints para classificar tiers sem se confundir com
-  // o multiplicador de fase. basePoints nulo = predição anterior ao peso (fase de grupos,
-  // weight=1), então points == basePoints nesses casos — fallback seguro.
-  const rawPreds = await prisma.prediction.findMany({
+  // Per-tier counts from predictions (single grouped query)
+  const tierCounts = await prisma.prediction.groupBy({
+    by: ['userId', 'points'],
     where: {
       userId: { in: participants.map((p) => p.user.id) },
       game: { round: { poolId } },
       points: { not: null },
     },
-    select: { userId: true, points: true, basePoints: true },
+    _count: { _all: true },
   });
 
-  // Monta dois lookups a partir das predições brutas:
-  //   tierMap:   userId → { pontoBase: quantidade }   — tier usa basePoints sem multiplicador
-  //   totalMap:  userId → totalPoints ponderado       — soma prediction.points (inclui rodadas IN_PROGRESS)
-  // IMPORTANTE: não usar ParticipantScore aqui pois ele só existe para rodadas 100% finalizadas;
-  // rodadas IN_PROGRESS com jogos já pontuados ficariam fora do total.
+  // Build a lookup: userId → { pts: count }
   const tierMap: Record<string, Record<number, number>> = {};
-  const totalMap: Record<string, number> = {};
-  for (const pred of rawPreds) {
-    const base = pred.basePoints ?? pred.points; // fallback para dados antigos sem peso
-    if (base === null || pred.points === null) continue;
-    if (!tierMap[pred.userId]) tierMap[pred.userId] = {};
-    tierMap[pred.userId][base] = (tierMap[pred.userId][base] ?? 0) + 1;
-    totalMap[pred.userId] = (totalMap[pred.userId] ?? 0) + pred.points;
+  for (const row of tierCounts) {
+    if (row.points === null) continue;
+    const uid = row.userId;
+    if (!tierMap[uid]) tierMap[uid] = {};
+    tierMap[uid][row.points] = row._count._all;
   }
 
   const entries = participants.map((p) => {
     const uid = p.user.id;
     const t = tierMap[uid] ?? {};
-    const totalPoints = totalMap[uid] ?? 0;
+    // Soma pontos direto das predições (inclui jogos de rodadas em andamento)
+    const totalPoints = Object.entries(t).reduce((sum, [pts, cnt]) => sum + Number(pts) * (cnt as number), 0);
     return {
       userId: uid,
       name: p.user.name,
-      avatar: p.user.avatar,
       totalPoints,
-      exactScores:      t[10] ?? 0,
-      resultDiffScores: t[7]  ?? 0,
-      correctResults:   t[5]  ?? 0,
-      oneScores:        t[3]  ?? 0,
-      roundsPlayed:     p.scores.length,
+      exactScores:     t[10] ?? 0,
+      resultDiffScores: t[7] ?? 0,
+      correctResults:  t[5]  ?? 0,
+      oneScores:       t[3]  ?? 0,
+      roundsPlayed:    p.scores.length,
     };
   });
 
@@ -74,38 +67,38 @@ export async function getRoundRanking(roundId: string) {
     orderBy: { totalPoints: 'desc' },
   });
 
-  // Per-tier counts — usa basePoints (sem multiplicador de fase) para não
-  // confundir resultado_correto×2 (=10) com placar_exato no tiebreaker.
+  // Per-tier counts for this round
   const userIds = scores.map((s) => s.participant.user.id);
-  const rawPreds = await prisma.prediction.findMany({
+  const tierCounts = await prisma.prediction.groupBy({
+    by: ['userId', 'points'],
     where: {
       userId: { in: userIds },
       game: { roundId },
       points: { not: null },
     },
-    select: { userId: true, points: true, basePoints: true },
+    _count: { _all: true },
   });
 
   const tierMap: Record<string, Record<number, number>> = {};
-  for (const pred of rawPreds) {
-    const base = pred.basePoints ?? pred.points; // fallback para dados antigos sem peso
-    if (base === null) continue;
-    if (!tierMap[pred.userId]) tierMap[pred.userId] = {};
-    tierMap[pred.userId][base] = (tierMap[pred.userId][base] ?? 0) + 1;
+  for (const row of tierCounts) {
+    if (row.points === null) continue;
+    const uid = row.userId;
+    if (!tierMap[uid]) tierMap[uid] = {};
+    tierMap[uid][row.points] = row._count._all;
   }
 
   return scores.map((s, idx) => {
     const uid = s.participant.user.id;
     const t = tierMap[uid] ?? {};
     return {
-      position:         idx + 1,
-      userId:           uid,
-      name:             s.participant.user.name,
-      totalPoints:      s.totalPoints,
-      exactScores:      t[10] ?? 0,
-      resultDiffScores: t[7]  ?? 0,
-      correctResults:   t[5]  ?? 0,
-      oneScores:        t[3]  ?? 0,
+      position:        idx + 1,
+      userId:          uid,
+      name:            s.participant.user.name,
+      totalPoints:     s.totalPoints,
+      exactScores:     t[10] ?? 0,
+      resultDiffScores: t[7] ?? 0,
+      correctResults:  t[5]  ?? 0,
+      oneScores:       t[3]  ?? 0,
     };
   });
 }
@@ -153,36 +146,6 @@ export async function getRankingHistory(poolId: string): Promise<RankingHistory 
   });
 
   return { rounds, participants };
-}
-
-export async function getPoolRoundRankings(poolId: string) {
-  const rounds = await prisma.round.findMany({
-    where: { poolId, status: 'FINISHED' },
-    orderBy: { number: 'desc' },
-    include: {
-      scores: {
-        orderBy: { totalPoints: 'desc' },
-        include: {
-          participant: {
-            include: { user: { select: { id: true, name: true, avatar: true } } },
-          },
-        },
-      },
-    },
-  });
-
-  return rounds.map((round) => ({
-    id: round.id,
-    name: round.name,
-    participants: round.scores.map((score, idx) => ({
-      position:    idx + 1,
-      userId:      score.participant.user.id,
-      name:        score.participant.user.name,
-      avatar:      score.participant.user.avatar,
-      totalPoints: score.totalPoints,
-      exactScores: score.exactScores,
-    })),
-  }));
 }
 
 export async function getPendingPredictionsAlert(poolId: string): Promise<PendingAlert | null> {

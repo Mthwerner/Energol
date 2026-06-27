@@ -38,26 +38,22 @@ export default async function RoundPredictionsPage({ params }: Props) {
   if (!round || round.poolId !== id) notFound();
 
   const isFinished = round.status === 'FINISHED';
-  const finishedGames = round.games.filter((g) => g.status === 'FINISHED' && g.homeScore !== null);
 
   const [userPredictions, participantsPredictions] = await Promise.all([
     getUserPredictionsForRound(session.user.id, roundId),
-    finishedGames.length > 0 ? getRoundParticipantsPredictions(roundId, id) : Promise.resolve([]),
+    isFinished ? getRoundParticipantsPredictions(roundId, id) : Promise.resolve([]),
   ]);
 
   const predMap: Record<string, { homeScore: number; awayScore: number }> = {};
   const pointsMap: Record<string, number | null> = {};
-  const basePointsMap: Record<string, number | null> = {};
   for (const p of userPredictions) {
     predMap[p.gameId] = { homeScore: p.homeScore, awayScore: p.awayScore };
     pointsMap[p.gameId] = p.points;
-    // basePoints para classificação de tier em round-results (sem multiplicador de fase)
-    basePointsMap[p.gameId] = p.basePoints;
   }
 
-  // Fetch odds while round is not finished (some games may still be open)
+  // Fetch odds only for open rounds (no point showing odds for finished games)
   let oddsEvents: OddsEvent[] = [];
-  if (round.status !== 'FINISHED') {
+  if (round.status === 'OPEN') {
     const isWC = round.games.some((g) => g.group);
     const sportKey = isWC ? 'soccer_fifa_world_cup' : 'soccer_brazil_campeonato';
     oddsEvents = await fetchOddsEvents(sportKey);
@@ -80,39 +76,37 @@ export default async function RoundPredictionsPage({ params }: Props) {
         }
       />
       <div className="p-4 md:p-6 space-y-4">
-        {round.status !== 'FINISHED' ? (
+        {round.status === 'OPEN' ? (
           <PredictionsForm
             poolId={id}
             games={round.games}
             initialPredictions={predMap}
             oddsEvents={oddsEvents}
-            hasParticipantsBelow={participantsPredictions.length > 0 && finishedGames.length > 0}
           />
         ) : (
-          <RoundResults
-            games={round.games}
-            predictions={predMap}
-            predictionPoints={pointsMap}
-            basePredictionPoints={basePointsMap}
-          />
-        )}
-
-        {participantsPredictions.length > 0 && finishedGames.length > 0 && (
-          <ParticipantsPredictions
-            participants={participantsPredictions}
-            games={finishedGames.map((g) => ({
-              id: g.id,
-              homeTeam: g.homeTeam,
-              awayTeam: g.awayTeam,
-              homeCrest: g.homeCrest,
-              awayCrest: g.awayCrest,
-              homeScore: g.homeScore,
-              awayScore: g.awayScore,
-              status: g.status,
-            }))}
-            currentUserId={session.user.id}
-            isPartial={!isFinished}
-          />
+          <>
+            <RoundResults
+              games={round.games}
+              predictions={predMap}
+              predictionPoints={pointsMap}
+            />
+            {isFinished && participantsPredictions.length > 0 && (
+              <ParticipantsPredictions
+                participants={participantsPredictions}
+                games={round.games.map((g) => ({
+                  id: g.id,
+                  homeTeam: g.homeTeam,
+                  awayTeam: g.awayTeam,
+                  homeCrest: g.homeCrest,
+                  awayCrest: g.awayCrest,
+                  homeScore: g.homeScore,
+                  awayScore: g.awayScore,
+                  status: g.status,
+                }))}
+                currentUserId={session.user.id}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
