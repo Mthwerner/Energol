@@ -28,6 +28,7 @@ interface Props {
   participants: ParticipantRoundData[];
   games: Game[];
   currentUserId: string;
+  isPartial?: boolean;
 }
 
 function ParticipantRow({
@@ -64,7 +65,10 @@ function ParticipantRow({
           {games.map((game) => {
             const pred = participant.predictions[game.id];
             const pts = pred?.points;
-            const color = pts !== null && pts !== undefined ? (pointsColor[pts] ?? 'text-slate-400') : 'text-slate-600';
+            // Usa basePoints para classificar a cor — sem confusão com peso de fase.
+            // Fallback para points em predições antigas (basePoints null, peso=1).
+            const basePts = pred?.basePoints ?? pts;
+            const color = basePts !== null && basePts !== undefined ? (pointsColor[basePts] ?? 'text-slate-400') : 'text-slate-600';
             const finished = game.status === 'FINISHED' && game.homeScore !== null;
 
             return (
@@ -122,7 +126,7 @@ function ParticipantRow({
   );
 }
 
-export function ParticipantsPredictions({ participants, games, currentUserId }: Props) {
+export function ParticipantsPredictions({ participants, games, currentUserId, isPartial }: Props) {
   if (participants.length === 0) return null;
 
   return (
@@ -131,6 +135,11 @@ export function ParticipantsPredictions({ participants, games, currentUserId }: 
         <CardTitle className="text-sm flex items-center gap-2">
           <Users size={14} className="text-slate-400" />
           Palpites dos participantes
+          {isPartial && (
+            <span className="ml-auto text-xs font-normal text-slate-500">
+              apenas jogos encerrados
+            </span>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">

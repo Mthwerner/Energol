@@ -8,6 +8,8 @@
  * - Recalcula pontuações das rodadas encerradas
  *
  * Apenas ADMIN pode chamar esta rota.
+ * Como externalId não é mais único globalmente (cada bolão tem suas cópias),
+ * usa findMany para atualizar todos os jogos com o mesmo externalId.
  */
 
 import { NextResponse } from 'next/server';
@@ -16,9 +18,7 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import {
   fetchWC2026Matches,
-  getRoundDef,
   toGameStatus,
-  type FDMatch,
 } from '@/lib/football-data';
 import { setGameResult } from '@/services/result.service';
 import { GameStatus } from '@prisma/client';
@@ -29,7 +29,6 @@ export async function POST() {
     return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
   }
 
-  // Verificar se é admin (role ADMIN no banco)
   const user = await prisma.user.findUnique({ where: { id: session.user.id } });
   if (!user || user.role !== 'ADMIN') {
     return NextResponse.json({ error: 'Acesso restrito a administradores' }, { status: 403 });
@@ -43,41 +42,56 @@ export async function POST() {
     let skipped    = 0;
 
     for (const m of allMatches) {
-      // Apenas processa jogos que já temos no banco (externalId)
-      const game = await prisma.game.findUnique({ where: { externalId: m.id } });
-      if (!game) { skipped++; continue; }
+      // Busca todos os jogos com este externalId (um por bolão)
+      const games = await prisma.game.findMany({ where: { externalId: m.id } });
+      if (games.length === 0) { skipped++; continue; }
 
-      const newStatus  = toGameStatus(m.status) as GameStatus;
-      const homeTeam   = m.homeTeam?.shortName ?? m.homeTeam?.name ?? game.homeTeam;
-      const awayTeam   = m.awayTeam?.shortName ?? m.awayTeam?.name ?? game.awayTeam;
-      const homeCrest  = m.homeTeam?.crest ?? game.homeCrest;
-      const awayCrest  = m.awayTeam?.crest ?? game.awayCrest;
-      const matchDate  = new Date(m.utcDate);
-      const group      = m.group ?? null;
+      const newStatus = toGameStatus(m.status) as GameStatus;
+      const homeTeamApi = m.homeTeam?.shortName || m.homeTeam?.name || null;
+      const awayTeamApi = m.awayTeam?.shortName || m.awayTeam?.name || null;
+      const homeCrest = m.homeTeam?.crest || null;
+      const awayCrest = m.awayTeam?.crest || null;
+      const matchDate = new Date(m.utcDate);
+      const group = m.group ?? null;
 
-      // Se o jogo acabou e ainda não temos placar → calcular pontuações
-      if (
-        newStatus === 'FINISHED' &&
-        game.status !== 'FINISHED' &&
-        m.score.fullTime.home !== null &&
-        m.score.fullTime.away !== null
-      ) {
-        await setGameResult(
-          game.id,
-          m.score.fullTime.home,
-          m.score.fullTime.away,
-          session.user.id,
-        );
-        newResults++;
+      for (const game of games) {
+        const alreadyFinished = game.status === 'FINISHED' && game.homeScore !== null;
+
+        if (
+          newStatus === 'FINISHED' &&
+          !alreadyFinished &&
+          m.score.fullTime.home !== null &&
+          m.score.fullTime.away !== null
+        ) {
+          await setGameResult(
+            game.id,
+            m.score.fullTime.home,
+            m.score.fullTime.away,
+            session.user.id,
+          );
+          newResults++;
+        }
+
+        // Não atualiza homeTeam/awayTeam de jogo já finalizado — a API pode ter
+        // home/away na ordem oposta à usada quando os palpites foram feitos.
+        const teamUpdate: { homeTeam?: string; homeCrest?: string | null; awayTeam?: string; awayCrest?: string | null } = {};
+        if (!alreadyFinished) {
+          if (homeTeamApi) { teamUpdate.homeTeam = homeTeamApi; teamUpdate.homeCrest = homeCrest; }
+          if (awayTeamApi) { teamUpdate.awayTeam = awayTeamApi; teamUpdate.awayCrest = awayCrest; }
+        }
+
+        await prisma.game.update({
+          where: { id: game.id },
+          data: {
+            ...teamUpdate,
+            matchDate,
+            status: newStatus,
+            group,
+          },
+        });
       }
 
-      // Atualiza metadados (time, emblema, data, status)
-      await prisma.game.update({
-        where: { id: game.id },
-        data:  { homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status: newStatus, group },
-      });
-
-      updated++;
+      updated += games.length;
     }
 
     revalidateTag('standings-WC');

@@ -47,9 +47,11 @@ export default async function RoundPredictionsPage({ params }: Props) {
 
   const predMap: Record<string, { homeScore: number; awayScore: number }> = {};
   const pointsMap: Record<string, number | null> = {};
+  const basePointsMap: Record<string, number | null> = {};
   for (const p of userPredictions) {
     predMap[p.gameId] = { homeScore: p.homeScore, awayScore: p.awayScore };
     pointsMap[p.gameId] = p.points;
+    basePointsMap[p.gameId] = p.basePoints;
   }
 
   // Fetch odds only for open/in-progress rounds
@@ -90,6 +92,7 @@ export default async function RoundPredictionsPage({ params }: Props) {
               games={round.games}
               predictions={predMap}
               predictionPoints={pointsMap}
+              basePredictionPoints={basePointsMap}
             />
             {isFinished && participantsPredictions.length > 0 && (
               <ParticipantsPredictions

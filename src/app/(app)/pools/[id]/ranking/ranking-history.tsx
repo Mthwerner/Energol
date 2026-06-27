@@ -87,7 +87,7 @@ export function RankingHistoryTable({ history, currentUserId }: Props) {
             </tbody>
           </table>
           <p className="px-4 py-2 text-xs text-slate-600">
-            Passe o cursor sobre R1, R2... para ver o nome da rodada.
+            R1, R2... = número da rodada · toque ou passe o cursor para ver o nome completo.
           </p>
         </CardContent>
       )}

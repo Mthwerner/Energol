@@ -15,7 +15,7 @@ export async function getRound(roundId: string) {
   return prisma.round.findUnique({
     where: { id: roundId },
     include: {
-      games: { orderBy: { matchDate: 'asc' } },
+      games: { orderBy: [{ matchDate: 'asc' }, { id: 'asc' }] },
       _count: { select: { games: true } },
     },
   });

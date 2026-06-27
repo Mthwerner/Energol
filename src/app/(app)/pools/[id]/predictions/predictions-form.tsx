@@ -4,7 +4,6 @@ import { useState, useRef } from 'react';
 import { Save, Check, Lock, AlertCircle } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { formatDateTime } from '@/lib/utils';
 import { findOdds, type OddsEvent } from '@/lib/odds';
 
 const CUTOFF_MS = 60 * 60 * 1000;
@@ -13,13 +12,17 @@ const isDeadlinePassed = (matchDate: string | Date) =>
   new Date(matchDate).getTime() - Date.now() < CUTOFF_MS;
 
 function getDeadlineLabel(matchDate: string | Date): string {
-  const diff = new Date(matchDate).getTime() - Date.now();
+  const diff = new Date(matchDate).getTime() - CUTOFF_MS - Date.now();
   if (diff <= 0) return 'Encerrado';
   const hours = Math.floor(diff / 3600000);
   const minutes = Math.floor((diff % 3600000) / 60000);
-  if (hours > 24) return `${Math.floor(hours / 24)}d restantes`;
-  if (hours > 0) return `${hours}h ${minutes}min restantes`;
-  return `${minutes}min restantes`;
+  if (hours > 24) return `Encerra em ${Math.floor(hours / 24)}d ${hours % 24}h`;
+  if (hours > 0) return `Encerra em ${hours}h ${minutes}min`;
+  return `Encerra em ${minutes}min`;
+}
+
+function formatTime(date: string | Date): string {
+  return new Date(date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }
 
 function formatGroupLabel(group: string): string {
@@ -44,9 +47,10 @@ interface Props {
   games: Game[];
   initialPredictions: Record<string, { homeScore: number; awayScore: number }>;
   oddsEvents?: OddsEvent[];
+  hasParticipantsBelow?: boolean;
 }
 
-export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents = [] }: Props) {
+export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents = [], hasParticipantsBelow = false }: Props) {
   const [predictions, setPredictions] = useState<Record<string, { home: string; away: string }>>(() => {
     const init: Record<string, { home: string; away: string }> = {};
     for (const [gameId, p] of Object.entries(initialPredictions)) {
@@ -168,7 +172,7 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
   }
 
   return (
-    <div className="space-y-4 pb-28 md:pb-0">
+    <div className={`space-y-4 ${hasParticipantsBelow ? '' : 'pb-28 md:pb-0'}`}>
       {/* Progress bar */}
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span>
@@ -212,7 +216,7 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                 const p = predictions[game.id] ?? { home: '', away: '' };
                 const isFilled = p.home !== '' && p.away !== '';
                 const deadline = getDeadlineLabel(game.matchDate);
-                const urgent = new Date(game.matchDate).getTime() - Date.now() < 3 * 3600000;
+                const urgent = new Date(game.matchDate).getTime() - CUTOFF_MS - Date.now() < 2 * 3600000;
 
                 const odds = findOdds(oddsEvents, game.homeTeam, game.awayTeam);
 
@@ -222,9 +226,12 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
                     className={`px-4 py-3.5 transition-colors ${isFilled ? 'bg-brand-950/20' : ''}`}
                   >
                     {/* Deadline */}
-                    <div className="flex justify-center mb-2">
+                    <div className="flex items-center justify-center gap-2 mb-2">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${urgent ? 'text-amber-400 bg-amber-950/50 border border-amber-900' : 'text-slate-600'}`}>
-                        {formatDateTime(game.matchDate)} · {deadline}
+                        {deadline}
+                      </span>
+                      <span className="text-xs text-slate-700">
+                        Início {formatTime(game.matchDate)}
                       </span>
                     </div>
 
@@ -336,7 +343,10 @@ export function PredictionsForm({ poolId, games, initialPredictions, oddsEvents 
       )}
 
       {/* Save button */}
-      <div className="fixed bottom-20 left-0 right-0 z-20 px-4 md:static md:bottom-auto md:px-0">
+      <div className={hasParticipantsBelow
+        ? 'mt-2'
+        : 'fixed bottom-20 left-0 right-0 z-20 px-4 md:static md:bottom-auto md:px-0'
+      }>
         <Button
           onClick={save}
           loading={saving}

@@ -67,11 +67,15 @@ export async function POST(req: NextRequest) {
 
     const roundDefs: RoundDef[] = competition === 'WC2026' ? WC2026_ROUNDS : BSA2026_ROUNDS;
 
-    // Agrupar partidas por rodada
+    // Agrupar partidas por rodada; rastrear estágios não reconhecidos para diagnóstico
     const byRound = new Map<number, FDMatch[]>();
+    const unknownStageCount = new Map<string, number>();
     for (const match of allMatches) {
       const def = getRoundDef(match, roundDefs);
-      if (!def) continue;
+      if (!def) {
+        unknownStageCount.set(match.stage, (unknownStageCount.get(match.stage) ?? 0) + 1);
+        continue;
+      }
       if (!byRound.has(def.number)) byRound.set(def.number, []);
       byRound.get(def.number)!.push(match);
     }
@@ -81,10 +85,14 @@ export async function POST(req: NextRequest) {
     let gamesCreated = 0;
     let gamesUpdated = 0;
     let newResults = 0;
+    const roundDetails: { name: string; gamesFromApi: number; gamesCreated: number; gamesUpdated: number }[] = [];
 
     for (const def of roundDefs) {
       const matches = byRound.get(def.number) ?? [];
       if (matches.length === 0) continue;
+
+      let roundGamesCreated = 0;
+      let roundGamesUpdated = 0;
 
       const start = minDate(matches);
       const end = maxDate(matches);
@@ -105,9 +113,11 @@ export async function POST(req: NextRequest) {
         where: { poolId_number: { poolId, number: def.number } },
       });
 
+      // stage é salvo para que getKnockoutWeight possa identificar a fase
+      // e para o lock de edição de pesos funcionar corretamente.
       const round = await prisma.round.upsert({
         where: { poolId_number: { poolId, number: def.number } },
-        update: { name: def.name, startDate: start, endDate: end, status: roundStatus },
+        update: { name: def.name, startDate: start, endDate: end, status: roundStatus, stage: def.stage },
         create: {
           poolId,
           number: def.number,
@@ -115,21 +125,37 @@ export async function POST(req: NextRequest) {
           startDate: start,
           endDate: end,
           status: roundStatus,
+          stage: def.stage,
         },
       });
 
       if (existing) roundsUpdated++; else roundsCreated++;
 
       for (const m of matches) {
-        const homeTeam = m.homeTeam?.shortName ?? m.homeTeam?.name ?? 'A definir';
-        const awayTeam = m.awayTeam?.shortName ?? m.awayTeam?.name ?? 'A definir';
-        const homeCrest = m.homeTeam?.crest ?? null;
-        const awayCrest = m.awayTeam?.crest ?? null;
+        // Usa || em vez de ?? para tratar strings vazias como nulas (API pode retornar "")
+        const homeTeamApi = m.homeTeam?.shortName || m.homeTeam?.name || null;
+        const awayTeamApi = m.awayTeam?.shortName || m.awayTeam?.name || null;
+        const homeCrest = m.homeTeam?.crest || null;
+        const awayCrest = m.awayTeam?.crest || null;
         const matchDate = new Date(m.utcDate);
         const status = toGameStatus(m.status) as GameStatus;
         const group = m.group ?? null;
 
-        const existingGame = await prisma.game.findUnique({ where: { externalId: m.id } });
+        // Busca o jogo filtrando pelo pool — externalId não é mais único globalmente,
+        // cada bolão tem suas próprias cópias dos jogos.
+        // Fallback para matchDate quando o jogo foi criado manualmente (sem externalId).
+        let existingGame = await prisma.game.findFirst({
+          where: { externalId: m.id, round: { poolId } },
+        });
+        if (!existingGame) {
+          existingGame = await prisma.game.findFirst({
+            where: { roundId: round.id, externalId: null, matchDate },
+          }) ?? null;
+          // Vincula o externalId ao jogo manual encontrado
+          if (existingGame) {
+            await prisma.game.update({ where: { id: existingGame.id }, data: { externalId: m.id } });
+          }
+        }
 
         // Novo resultado → calcular pontuações
         if (
@@ -148,24 +174,49 @@ export async function POST(req: NextRequest) {
           newResults++;
         }
 
-        await prisma.game.upsert({
-          where: { externalId: m.id },
-          update: {
-            homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status, group,
-            homeScore: status === 'FINISHED' ? m.score.fullTime.home : null,
-            awayScore: status === 'FINISHED' ? m.score.fullTime.away : null,
-          },
-          create: {
-            roundId: round.id,
-            externalId: m.id,
-            homeTeam, awayTeam, homeCrest, awayCrest, matchDate, status, group,
-            homeScore: status === 'FINISHED' ? m.score.fullTime.home : null,
-            awayScore: status === 'FINISHED' ? m.score.fullTime.away : null,
-          },
-        });
+        // Só sobrescreve time/escudo quando a API retornar um nome real.
+        // Evita apagar times/escudos já confirmados se a API devolver null em sync futura.
+        // Para jogos já FINISHED com palpites, não atualiza homeTeam/awayTeam nem scores:
+        // a API pode ter home/away na ordem oposta à que foi usada quando os palpites foram feitos,
+        // o que causaria inversão visual dos palpites sem mudar os pontos calculados.
+        const alreadyFinished = existingGame?.status === 'FINISHED' && (existingGame?.homeScore ?? null) !== null;
+        const teamUpdate: { homeTeam?: string; homeCrest?: string | null; awayTeam?: string; awayCrest?: string | null } = {};
+        if (!alreadyFinished) {
+          if (homeTeamApi) { teamUpdate.homeTeam = homeTeamApi; teamUpdate.homeCrest = homeCrest; }
+          if (awayTeamApi) { teamUpdate.awayTeam = awayTeamApi; teamUpdate.awayCrest = awayCrest; }
+        }
 
-        if (existingGame) gamesUpdated++; else gamesCreated++;
+        if (existingGame) {
+          await prisma.game.update({
+            where: { id: existingGame.id },
+            data: {
+              ...teamUpdate,
+              matchDate, status, group,
+              // Não sobrescreve placar de jogo já finalizado — evita inversão de home/away
+              homeScore: alreadyFinished ? existingGame.homeScore : (status === 'FINISHED' ? m.score.fullTime.home : null),
+              awayScore: alreadyFinished ? existingGame.awayScore : (status === 'FINISHED' ? m.score.fullTime.away : null),
+            },
+          });
+          gamesUpdated++;
+          roundGamesUpdated++;
+        } else {
+          await prisma.game.create({
+            data: {
+              roundId: round.id,
+              externalId: m.id,
+              homeTeam: homeTeamApi ?? 'A definir',
+              awayTeam: awayTeamApi ?? 'A definir',
+              homeCrest, awayCrest, matchDate, status, group,
+              homeScore: status === 'FINISHED' ? m.score.fullTime.home : null,
+              awayScore: status === 'FINISHED' ? m.score.fullTime.away : null,
+            },
+          });
+          gamesCreated++;
+          roundGamesCreated++;
+        }
       }
+
+      roundDetails.push({ name: def.name, gamesFromApi: matches.length, gamesCreated: roundGamesCreated, gamesUpdated: roundGamesUpdated });
 
       // Garante que pontos e scores estejam corretos em rodadas finalizadas.
       // Necessário porque: (a) jogos novos chegam já como FINISHED sem passar pelo
@@ -180,6 +231,8 @@ export async function POST(req: NextRequest) {
     revalidateTag(competition === 'WC2026' ? 'standings-WC' : 'standings-BSA');
     revalidateTag(competition === 'WC2026' ? 'scorers-WC' : 'scorers-BSA');
 
+    const unknownStages = Object.fromEntries(unknownStageCount);
+
     return NextResponse.json({
       ok: true,
       summary: {
@@ -188,6 +241,8 @@ export async function POST(req: NextRequest) {
         gamesCreated,
         gamesUpdated,
         newResults,
+        roundDetails,
+        unknownStages,
       },
     });
   } catch (err) {

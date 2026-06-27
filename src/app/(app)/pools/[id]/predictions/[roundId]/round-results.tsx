@@ -18,7 +18,10 @@ interface Game {
 interface Props {
   games: Game[];
   predictions: Record<string, { homeScore: number; awayScore: number }>;
+  /** Pontos finais (ponderados pelo multiplicador de fase) — exibidos na tela */
   predictionPoints: Record<string, number | null | undefined>;
+  /** Pontos-base (10/7/5/3/0 sem multiplicador) — usados para classificar o tipo de acerto */
+  basePredictionPoints: Record<string, number | null | undefined>;
 }
 
 const resultConfig = {
@@ -47,6 +50,7 @@ function buildRow(
   game: Game,
   predictions: Props['predictions'],
   predictionPoints: Props['predictionPoints'],
+  basePredictionPoints: Props['basePredictionPoints'],
 ): GameRow {
   const pred = predictions[game.id];
   const finished = game.status === 'FINISHED' && game.homeScore !== null && game.awayScore !== null;
@@ -58,12 +62,16 @@ function buildRow(
   let type: keyof typeof resultConfig;
 
   if (stored !== null && stored !== undefined) {
+    // points exibe o valor final ponderado (ex: 40 em Quartas com peso 4×)
     points = stored;
-    if      (points === 10) type = 'EXACT';
-    else if (points === 7)  type = 'RESULT_DIFF';
-    else if (points === 5)  type = 'RESULT';
-    else if (points === 3)  type = 'ONE_SCORE';
-    else                    type = 'MISS';
+    // Tipo classificado pela pontuação-BASE, não pelo valor ponderado.
+    // Fallback para stored quando basePoints ainda é null (predições antigas sem peso).
+    const base = basePredictionPoints[game.id] ?? stored;
+    if      (base === 10) type = 'EXACT';
+    else if (base === 7)  type = 'RESULT_DIFF';
+    else if (base === 5)  type = 'RESULT';
+    else if (base === 3)  type = 'ONE_SCORE';
+    else                  type = 'MISS';
   } else {
     const calc = calculateScore(pred, { homeScore: game.homeScore!, awayScore: game.awayScore! });
     points = calc.points;
@@ -136,8 +144,8 @@ function GameResultRow({ row }: { row: GameRow }) {
   );
 }
 
-export function RoundResults({ games, predictions, predictionPoints }: Props) {
-  const rows = games.map((g) => buildRow(g, predictions, predictionPoints));
+export function RoundResults({ games, predictions, predictionPoints, basePredictionPoints }: Props) {
+  const rows = games.map((g) => buildRow(g, predictions, predictionPoints, basePredictionPoints));
 
   const finishedCount = rows.filter((r) => r.finished).length;
   const totalPoints   = rows.reduce((sum, r) => sum + (r.points ?? 0), 0);
