@@ -38,6 +38,7 @@ export default async function RoundPredictionsPage({ params }: Props) {
   if (!round || round.poolId !== id) notFound();
 
   const isFinished = round.status === 'FINISHED';
+  const isPlayable = round.status === 'OPEN' || round.status === 'IN_PROGRESS';
 
   const [userPredictions, participantsPredictions] = await Promise.all([
     getUserPredictionsForRound(session.user.id, roundId),
@@ -51,9 +52,9 @@ export default async function RoundPredictionsPage({ params }: Props) {
     pointsMap[p.gameId] = p.points;
   }
 
-  // Fetch odds only for open rounds (no point showing odds for finished games)
+  // Fetch odds only for open/in-progress rounds
   let oddsEvents: OddsEvent[] = [];
-  if (round.status === 'OPEN') {
+  if (isPlayable) {
     const isWC = round.games.some((g) => g.group);
     const sportKey = isWC ? 'soccer_fifa_world_cup' : 'soccer_brazil_campeonato';
     oddsEvents = await fetchOddsEvents(sportKey);
@@ -76,7 +77,7 @@ export default async function RoundPredictionsPage({ params }: Props) {
         }
       />
       <div className="p-4 md:p-6 space-y-4">
-        {round.status === 'OPEN' ? (
+        {isPlayable ? (
           <PredictionsForm
             poolId={id}
             games={round.games}
