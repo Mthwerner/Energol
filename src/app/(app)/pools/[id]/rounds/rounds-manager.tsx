@@ -162,6 +162,15 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
     }));
   };
 
+  const onTeamsSet = (roundId: string, gameId: string, homeTeam: string, awayTeam: string) => {
+    setGames((prev) => ({
+      ...prev,
+      [roundId]: (prev[roundId] ?? []).map((g) =>
+        g.id === gameId ? { ...g, homeTeam, awayTeam } : g,
+      ),
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -213,6 +222,7 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
                       poolId={poolId}
                       roundId={round.id}
                       onResultSet={(hs, as) => onResultSet(round.id, game.id, hs, as)}
+                      onTeamsSet={(ht, at) => onTeamsSet(round.id, game.id, ht, at)}
                     />
                   ))}
                   {(games[round.id] ?? []).length === 0 && (
