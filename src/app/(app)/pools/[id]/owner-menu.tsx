@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MoreVertical, UserMinus, Settings, Wrench, Trash2, BarChart2, Swords, BookOpen } from 'lucide-react';
+import { MoreVertical, UserMinus, Settings, Wrench, Trash2, BarChart2, Swords, BookOpen, PieChart, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
 
@@ -79,11 +79,17 @@ export function OwnerActionsMenu({ poolId, poolName, isOwner }: Props) {
 
         {menuOpen && (
           <div className="absolute right-0 top-full mt-1 z-40 w-48 rounded-lg border border-slate-700 bg-slate-900 shadow-xl py-1 animate-fade-in">
+            <Link href={`/pools/${poolId}/my-history`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+              <History size={14} className="shrink-0" /> Meus palpites
+            </Link>
             <Link href={`/pools/${poolId}/standings`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
               <BarChart2 size={14} className="shrink-0" /> Tabela
             </Link>
             <Link href={`/pools/${poolId}/scorers`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
               <Swords size={14} className="shrink-0" /> Artilharia
+            </Link>
+            <Link href={`/pools/${poolId}/stats`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
+              <PieChart size={14} className="shrink-0" /> Estatísticas
             </Link>
             <Link href={`/pools/${poolId}/rules`} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:bg-slate-800 transition-colors" onClick={() => setMenuOpen(false)}>
               <BookOpen size={14} className="shrink-0" /> Regras

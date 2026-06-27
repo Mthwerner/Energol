@@ -109,3 +109,21 @@ export async function getInviteCode(poolId: string, ownerId: string) {
   if (!pool || pool.ownerId !== ownerId) throw new Error('Não autorizado');
   return pool.inviteCode;
 }
+
+/**
+ * Retorna true se alguma rodada eliminatória do bolão já iniciou (IN_PROGRESS
+ * ou FINISHED). Quando verdadeiro, os pesos de fase ficam bloqueados para edição.
+ *
+ * Requer que Round.stage esteja populado (via sync-rounds ou seed-wc2026).
+ * Bolões sem rodadas com stage eliminatório (ex: Brasileirão) nunca ficam locked.
+ */
+export async function isKnockoutWeightLocked(poolId: string): Promise<boolean> {
+  const count = await prisma.round.count({
+    where: {
+      poolId,
+      stage: { in: ['LAST_32', 'LAST_16', 'QUARTER_FINALS', 'SEMI_FINALS', 'THIRD_PLACE', 'FINAL'] },
+      status: { in: ['IN_PROGRESS', 'FINISHED'] },
+    },
+  });
+  return count > 0;
+}

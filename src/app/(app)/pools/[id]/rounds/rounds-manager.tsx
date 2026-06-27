@@ -57,12 +57,21 @@ const COMPETITIONS: { value: Competition; label: string }[] = [
   { value: 'BSA2026', label: 'Brasileirão Série A 2026' },
 ];
 
+interface RoundDetail {
+  name: string;
+  gamesFromApi: number;
+  gamesCreated: number;
+  gamesUpdated: number;
+}
+
 interface SyncResult {
   roundsCreated: number;
   roundsUpdated: number;
   gamesCreated: number;
   gamesUpdated: number;
   newResults: number;
+  roundDetails?: RoundDetail[];
+  unknownStages?: Record<string, number>;
 }
 
 export function RoundsManager({ poolId, initialRounds }: { poolId: string; initialRounds: Round[] }) {
@@ -96,8 +105,6 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
         return;
       }
       setSyncResult(data.summary);
-      // Recarrega a página para refletir as rodadas atualizadas
-      window.location.reload();
     } catch {
       setSyncError('Erro de conexão');
     } finally {
@@ -162,16 +169,27 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
     }));
   };
 
+  const onTeamsSet = (roundId: string, gameId: string, homeTeam: string, awayTeam: string) => {
+    setGames((prev) => ({
+      ...prev,
+      [roundId]: (prev[roundId] ?? []).map((g) =>
+        g.id === gameId ? { ...g, homeTeam, awayTeam } : g,
+      ),
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-sm font-medium text-slate-400">{rounds.length} rodada{rounds.length !== 1 ? 's' : ''}</h2>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" onClick={() => { setSyncResult(null); setSyncError(null); setShowSyncModal(true); }}>
-            <RefreshCw size={14} /> Sincronizar
+            <RefreshCw size={14} />
+            <span className="hidden sm:inline">Sincronizar</span>
           </Button>
           <Button size="sm" onClick={() => setShowRoundModal(true)}>
-            <Plus size={14} /> Nova rodada
+            <Plus size={14} />
+            <span className="hidden sm:inline">Nova rodada</span>
           </Button>
         </div>
       </div>
@@ -213,6 +231,7 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
                       poolId={poolId}
                       roundId={round.id}
                       onResultSet={(hs, as) => onResultSet(round.id, game.id, hs, as)}
+                      onTeamsSet={(ht, at) => onTeamsSet(round.id, game.id, ht, at)}
                     />
                   ))}
                   {(games[round.id] ?? []).length === 0 && (
@@ -282,11 +301,34 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
           )}
 
           {syncResult && (
-            <div className="rounded-md bg-green-950 border border-green-800 px-3 py-2 text-sm text-green-300 space-y-0.5">
-              <p className="font-medium">Sincronização concluída!</p>
-              <p>Rodadas criadas: {syncResult.roundsCreated} · atualizadas: {syncResult.roundsUpdated}</p>
-              <p>Jogos criados: {syncResult.gamesCreated} · atualizados: {syncResult.gamesUpdated}</p>
-              {syncResult.newResults > 0 && <p>Novos resultados computados: {syncResult.newResults}</p>}
+            <div className="space-y-2">
+              <div className="rounded-md bg-green-950 border border-green-800 px-3 py-2 text-sm text-green-300 space-y-0.5">
+                <p className="font-medium">Sincronização concluída!</p>
+                <p>Rodadas criadas: {syncResult.roundsCreated} · atualizadas: {syncResult.roundsUpdated}</p>
+                <p>Jogos criados: {syncResult.gamesCreated} · atualizados: {syncResult.gamesUpdated}</p>
+                {syncResult.newResults > 0 && <p>Novos resultados computados: {syncResult.newResults}</p>}
+              </div>
+              {syncResult.roundDetails && syncResult.roundDetails.length > 0 && (
+                <div className="rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-xs space-y-1">
+                  <p className="font-medium text-slate-300 mb-1.5">Detalhe por rodada:</p>
+                  {syncResult.roundDetails.map((r) => (
+                    <div key={r.name} className="flex items-center justify-between gap-2">
+                      <span className="text-slate-400 truncate">{r.name}</span>
+                      <span className="shrink-0 text-slate-500 font-mono">
+                        {r.gamesFromApi} da API · +{r.gamesCreated} criados · {r.gamesUpdated} atualizados
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {syncResult.unknownStages && Object.keys(syncResult.unknownStages).length > 0 && (
+                <div className="rounded-md bg-amber-950 border border-amber-800 px-3 py-2 text-sm text-amber-300 space-y-1">
+                  <p className="font-medium">⚠ Estágios não reconhecidos (ignorados):</p>
+                  {Object.entries(syncResult.unknownStages).map(([stage, count]) => (
+                    <p key={stage} className="text-xs font-mono">{stage}: {count} jogo{count !== 1 ? 's' : ''}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -294,9 +336,15 @@ export function RoundsManager({ poolId, initialRounds }: { poolId: string; initi
             <Button onClick={syncRounds} loading={syncing} disabled={syncing}>
               <RefreshCw size={14} /> {syncing ? 'Sincronizando...' : 'Sincronizar agora'}
             </Button>
-            <Button type="button" variant="secondary" onClick={() => setShowSyncModal(false)} disabled={syncing}>
-              Fechar
-            </Button>
+            {syncResult ? (
+              <Button type="button" variant="primary" onClick={() => window.location.reload()}>
+                Recarregar página
+              </Button>
+            ) : (
+              <Button type="button" variant="secondary" onClick={() => setShowSyncModal(false)} disabled={syncing}>
+                Fechar
+              </Button>
+            )}
           </div>
         </div>
       </Modal>

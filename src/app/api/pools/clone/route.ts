@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       rounds: {
         orderBy: { number: 'asc' },
         include: {
-          games: { orderBy: { matchDate: 'asc' } },
+          games: { orderBy: [{ matchDate: 'asc' }, { id: 'asc' }] },
         },
       },
     },

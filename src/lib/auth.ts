@@ -29,13 +29,17 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: 'jwt' },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) token.id = user.id;
+      if (trigger === 'update' && session?.name) {
+        token.name = session.name;
+      }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
         (session.user as { id: string } & typeof session.user).id = token.id as string;
+        if (token.name) session.user.name = token.name as string;
       }
       return session;
     },
