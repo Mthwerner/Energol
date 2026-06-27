@@ -40,10 +40,11 @@ export default async function RoundPredictionsPage({ params }: Props) {
 
   const isFinished = round.status === 'FINISHED';
   const isPlayable = round.status === 'OPEN' || round.status === 'IN_PROGRESS';
+  const finishedGames = round.games.filter((g) => g.status === 'FINISHED' && g.homeScore !== null);
 
   const [userPredictions, participantsPredictions] = await Promise.all([
     getUserPredictionsForRound(session.user.id, roundId),
-    isFinished ? getRoundParticipantsPredictions(roundId, id) : Promise.resolve([]),
+    finishedGames.length > 0 ? getRoundParticipantsPredictions(roundId, id) : Promise.resolve([]),
   ]);
 
   const predMap: Record<string, { homeScore: number; awayScore: number }> = {};
@@ -92,32 +93,32 @@ export default async function RoundPredictionsPage({ params }: Props) {
             games={round.games}
             initialPredictions={predMap}
             oddsEvents={oddsEvents}
+            hasParticipantsBelow={participantsPredictions.length > 0 && finishedGames.length > 0}
           />
         ) : (
-          <>
-            <RoundResults
-              games={round.games}
-              predictions={predMap}
-              predictionPoints={pointsMap}
-              basePredictionPoints={basePointsMap}
-            />
-            {isFinished && participantsPredictions.length > 0 && (
-              <ParticipantsPredictions
-                participants={participantsPredictions}
-                games={round.games.map((g) => ({
-                  id: g.id,
-                  homeTeam: g.homeTeam,
-                  awayTeam: g.awayTeam,
-                  homeCrest: g.homeCrest,
-                  awayCrest: g.awayCrest,
-                  homeScore: g.homeScore,
-                  awayScore: g.awayScore,
-                  status: g.status,
-                }))}
-                currentUserId={session.user.id}
-              />
-            )}
-          </>
+          <RoundResults
+            games={round.games}
+            predictions={predMap}
+            predictionPoints={pointsMap}
+            basePredictionPoints={basePointsMap}
+          />
+        )}
+        {participantsPredictions.length > 0 && finishedGames.length > 0 && (
+          <ParticipantsPredictions
+            participants={participantsPredictions}
+            games={finishedGames.map((g) => ({
+              id: g.id,
+              homeTeam: g.homeTeam,
+              awayTeam: g.awayTeam,
+              homeCrest: g.homeCrest,
+              awayCrest: g.awayCrest,
+              homeScore: g.homeScore,
+              awayScore: g.awayScore,
+              status: g.status,
+            }))}
+            currentUserId={session.user.id}
+            isPartial={!isFinished}
+          />
         )}
       </div>
     </div>

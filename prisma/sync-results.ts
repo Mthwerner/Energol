@@ -20,94 +20,98 @@ import {
   WC2026_ROUNDS,
   type FDMatch,
 } from '../src/lib/football-data';
+import { calculateScore } from '../src/domain/scoring';
+import { applyWeight } from '../src/domain/knockout-weight';
 
 dotenv.config({ path: '.env' });
 dotenv.config({ path: '.env.local' });
 
 const prisma = new PrismaClient();
 
-// ─── Scoring ──────────────────────────────────────────────────────────────────
-
-function calcPoints(pred: { homeScore: number; awayScore: number }, actual: { homeScore: number; awayScore: number }): number {
-  if (pred.homeScore === actual.homeScore && pred.awayScore === actual.awayScore) return 10;
-  const outcome = (h: number, a: number) => h > a ? 'H' : h < a ? 'A' : 'D';
-  if (outcome(pred.homeScore, pred.awayScore) === outcome(actual.homeScore, actual.awayScore)) return 5;
-  return 0;
-}
-
 // ─── Sync de um único jogo ────────────────────────────────────────────────────
 
+// externalId não é mais único globalmente — cada bolão tem sua cópia do jogo.
+// syncGame processa todos os jogos com o mesmo externalId (um por bolão).
 async function syncGame(match: FDMatch): Promise<'updated' | 'skipped' | 'not_found'> {
   const homeScore = match.score.fullTime.home;
   const awayScore = match.score.fullTime.away;
 
   if (homeScore === null || awayScore === null) return 'skipped';
 
-  const game = await prisma.game.findUnique({
+  const games = await prisma.game.findMany({
     where: { externalId: match.id },
-    include: { round: true },
+    include: { round: { include: { pool: true } } },
   });
 
-  if (!game) return 'not_found';
+  if (games.length === 0) return 'not_found';
 
-  // Já está sincronizado com o mesmo placar — pular
-  if (
-    game.status === GameStatus.FINISHED &&
-    game.homeScore === homeScore &&
-    game.awayScore === awayScore
-  ) return 'skipped';
+  let anyUpdated = false;
 
-  await prisma.$transaction(async (tx) => {
-    // 1. Atualizar jogo
-    await tx.game.update({
-      where: { id: game.id },
-      data: { homeScore, awayScore, status: GameStatus.FINISHED },
-    });
+  for (const game of games) {
+    if (
+      game.status === GameStatus.FINISHED &&
+      game.homeScore === homeScore &&
+      game.awayScore === awayScore
+    ) continue;
 
-    // 2. Calcular pontos de cada palpite
-    const predictions = await tx.prediction.findMany({ where: { gameId: game.id } });
-    for (const pred of predictions) {
-      const points = calcPoints(
-        { homeScore: pred.homeScore, awayScore: pred.awayScore },
-        { homeScore, awayScore },
-      );
-      await tx.prediction.update({ where: { id: pred.id }, data: { points } });
-    }
-
-    // 3. Verificar se toda a rodada terminou
-    const allGames = await tx.game.findMany({ where: { roundId: game.roundId } });
-    const allFinished = allGames.every((g) => g.status === GameStatus.FINISHED || g.id === game.id);
-
-    if (allFinished && game.round.status !== RoundStatus.FINISHED) {
-      await tx.round.update({
-        where: { id: game.roundId },
-        data: { status: RoundStatus.FINISHED },
+    await prisma.$transaction(async (tx) => {
+      await tx.game.update({
+        where: { id: game.id },
+        data: { homeScore, awayScore, status: GameStatus.FINISHED },
       });
 
-      // 4. Recalcular ParticipantScore da rodada
-      const participants = await tx.participant.findMany({
-        where: { pool: { rounds: { some: { id: game.roundId } } }, isActive: true },
-      });
-      const allPreds = await tx.prediction.findMany({ where: { game: { roundId: game.roundId } } });
-
-      for (const part of participants) {
-        const userPreds = allPreds.filter((p) => p.userId === part.userId);
-        const totalPoints    = userPreds.reduce((s, p) => s + (p.points ?? 0), 0);
-        const exactScores    = userPreds.filter((p) => p.points === 10).length;
-        const correctResults = userPreds.filter((p) => p.points === 5).length;
-
-        await tx.participantScore.upsert({
-          where:  { participantId_roundId: { participantId: part.id, roundId: game.roundId } },
-          update: { totalPoints, exactScores, correctResults },
-          create: { participantId: part.id, roundId: game.roundId, totalPoints, exactScores, correctResults },
-        });
+      const predictions = await tx.prediction.findMany({ where: { gameId: game.id } });
+      for (const pred of predictions) {
+        const calc = calculateScore(
+          { homeScore: pred.homeScore, awayScore: pred.awayScore },
+          { homeScore, awayScore },
+        );
+        const weighted = applyWeight(calc.points, game.round.pool, game.round.stage);
+        await tx.prediction.update({ where: { id: pred.id }, data: weighted });
       }
 
-      console.log(`   🏁 Rodada finalizada: ${game.round.name}`);
-    }
-  });
+      const allGames = await tx.game.findMany({ where: { roundId: game.roundId } });
+      const allFinished = allGames.every(
+        (g) => g.status === GameStatus.FINISHED || g.id === game.id,
+      );
 
-  return 'updated';
+      if (allFinished && game.round.status !== RoundStatus.FINISHED) {
+        await tx.round.update({
+          where: { id: game.roundId },
+          data: { status: RoundStatus.FINISHED },
+        });
+
+        const participants = await tx.participant.findMany({
+          where: { pool: { rounds: { some: { id: game.roundId } } }, isActive: true },
+        });
+        const allPreds = await tx.prediction.findMany({
+          where: { game: { roundId: game.roundId } },
+        });
+
+        for (const part of participants) {
+          const userPreds = allPreds.filter((p) => p.userId === part.userId);
+          const totalPoints    = userPreds.reduce((s, p) => s + (p.points ?? 0), 0);
+          const exactScores    = userPreds.filter((p) => (p.basePoints ?? p.points) === 10).length;
+          const correctResults = userPreds.filter((p) => {
+            const base = p.basePoints ?? p.points;
+            return base === 5 || base === 7;
+          }).length;
+
+          await tx.participantScore.upsert({
+            where:  { participantId_roundId: { participantId: part.id, roundId: game.roundId } },
+            update: { totalPoints, exactScores, correctResults },
+            create: { participantId: part.id, roundId: game.roundId, totalPoints, exactScores, correctResults },
+          });
+        }
+
+        console.log(`   🏁 Rodada finalizada: ${game.round.name}`);
+      }
+    });
+
+    anyUpdated = true;
+  }
+
+  return anyUpdated ? 'updated' : 'skipped';
 }
 
 // ─── Sync de uma competição ───────────────────────────────────────────────────
@@ -126,7 +130,6 @@ async function syncCompetition(
   let skipped   = 0;
   let notFound  = 0;
 
-  // Agrupar por rodada para exibir progresso
   const byRound = new Map<string, FDMatch[]>();
   for (const m of finished) {
     const def = getRoundDef(m, rounds);

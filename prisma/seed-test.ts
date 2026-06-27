@@ -162,21 +162,15 @@ async function main() {
   });
 
   const [g1, g2, g3] = await Promise.all([
-    prisma.game.upsert({
-      where: { externalId: GAME_IDS.g1 },
-      update: {},
-      create: { roundId: ROUND1_ID, homeTeam: 'Brasil', awayTeam: 'Argentina', matchDate: new Date('2027-06-02T15:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g1 },
-    }),
-    prisma.game.upsert({
-      where: { externalId: GAME_IDS.g2 },
-      update: {},
-      create: { roundId: ROUND1_ID, homeTeam: 'França', awayTeam: 'Alemanha', matchDate: new Date('2027-06-03T18:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g2 },
-    }),
-    prisma.game.upsert({
-      where: { externalId: GAME_IDS.g3 },
-      update: {},
-      create: { roundId: ROUND1_ID, homeTeam: 'Espanha', awayTeam: 'Portugal', matchDate: new Date('2027-06-04T21:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g3 },
-    }),
+    prisma.game.findFirst({ where: { externalId: GAME_IDS.g1, roundId: ROUND1_ID } }).then((g) =>
+      g ?? prisma.game.create({ data: { roundId: ROUND1_ID, homeTeam: 'Brasil', awayTeam: 'Argentina', matchDate: new Date('2027-06-02T15:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g1 } }),
+    ),
+    prisma.game.findFirst({ where: { externalId: GAME_IDS.g2, roundId: ROUND1_ID } }).then((g) =>
+      g ?? prisma.game.create({ data: { roundId: ROUND1_ID, homeTeam: 'França', awayTeam: 'Alemanha', matchDate: new Date('2027-06-03T18:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g2 } }),
+    ),
+    prisma.game.findFirst({ where: { externalId: GAME_IDS.g3, roundId: ROUND1_ID } }).then((g) =>
+      g ?? prisma.game.create({ data: { roundId: ROUND1_ID, homeTeam: 'Espanha', awayTeam: 'Portugal', matchDate: new Date('2027-06-04T21:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g3 } }),
+    ),
   ]);
 
   console.log('✅ Rodada 1 e jogos criados');
@@ -197,16 +191,12 @@ async function main() {
   });
 
   const [g4, g5] = await Promise.all([
-    prisma.game.upsert({
-      where: { externalId: GAME_IDS.g4 },
-      update: {},
-      create: { roundId: ROUND2_ID, homeTeam: 'Inglaterra', awayTeam: 'Itália', matchDate: new Date('2027-06-10T15:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g4 },
-    }),
-    prisma.game.upsert({
-      where: { externalId: GAME_IDS.g5 },
-      update: {},
-      create: { roundId: ROUND2_ID, homeTeam: 'EUA', awayTeam: 'México', matchDate: new Date('2027-06-11T18:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g5 },
-    }),
+    prisma.game.findFirst({ where: { externalId: GAME_IDS.g4, roundId: ROUND2_ID } }).then((g) =>
+      g ?? prisma.game.create({ data: { roundId: ROUND2_ID, homeTeam: 'Inglaterra', awayTeam: 'Itália', matchDate: new Date('2027-06-10T15:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g4 } }),
+    ),
+    prisma.game.findFirst({ where: { externalId: GAME_IDS.g5, roundId: ROUND2_ID } }).then((g) =>
+      g ?? prisma.game.create({ data: { roundId: ROUND2_ID, homeTeam: 'EUA', awayTeam: 'México', matchDate: new Date('2027-06-11T18:00:00Z'), status: GameStatus.SCHEDULED, externalId: GAME_IDS.g5 } }),
+    ),
   ]);
 
   console.log('✅ Rodada 2 e jogos criados\n');

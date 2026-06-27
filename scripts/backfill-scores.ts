@@ -1,11 +1,24 @@
 import { PrismaClient } from '@prisma/client';
 import { calculateScore } from '../src/domain/scoring';
+import { applyWeight } from '../src/domain/knockout-weight';
 
 const PROD_URL = 'postgresql://neondb_owner:npg_tqSpj9bcYG8w@ep-wispy-leaf-accj9vw5.sa-east-1.aws.neon.tech/neondb?sslmode=require';
 
 const prisma = new PrismaClient({ datasources: { db: { url: PROD_URL } } });
 
+/**
+ * Recalcula basePoints e points de todas as predições de uma rodada,
+ * respeitando o multiplicador de fase do bolão (se habilitado).
+ * Em seguida agrega os ParticipantScores usando basePoints para os contadores de tier.
+ */
 async function recalcRound(roundId: string) {
+  // Inclui pool para ter config de peso
+  const round = await prisma.round.findUnique({
+    where: { id: roundId },
+    include: { pool: true },
+  });
+  if (!round) return 0;
+
   const games = await prisma.game.findMany({
     where: { roundId, status: 'FINISHED' },
     include: { predictions: true },
@@ -19,8 +32,9 @@ async function recalcRound(roundId: string) {
         { homeScore: pred.homeScore, awayScore: pred.awayScore },
         { homeScore: game.homeScore, awayScore: game.awayScore },
       );
-      if (pred.points !== calc.points) {
-        await prisma.prediction.update({ where: { id: pred.id }, data: { points: calc.points } });
+      const weighted = applyWeight(calc.points, round.pool, round.stage);
+      if (pred.basePoints !== weighted.basePoints || pred.points !== weighted.points) {
+        await prisma.prediction.update({ where: { id: pred.id }, data: weighted });
         predsUpdated++;
       }
     }
@@ -34,8 +48,12 @@ async function recalcRound(roundId: string) {
   for (const participant of participants) {
     const userPreds = predictions.filter((p) => p.userId === participant.userId);
     const totalPoints = userPreds.reduce((sum, p) => sum + (p.points ?? 0), 0);
-    const exactScores = userPreds.filter((p) => p.points === 10).length;
-    const correctResults = userPreds.filter((p) => p.points === 5 || p.points === 7).length;
+    // Contadores de tier por pontuação-BASE (sem multiplicador de fase)
+    const exactScores = userPreds.filter((p) => (p.basePoints ?? p.points) === 10).length;
+    const correctResults = userPreds.filter((p) => {
+      const base = p.basePoints ?? p.points;
+      return base === 5 || base === 7;
+    }).length;
     await prisma.participantScore.upsert({
       where: { participantId_roundId: { participantId: participant.id, roundId } },
       update: { totalPoints, exactScores, correctResults },
@@ -61,7 +79,6 @@ async function main() {
   }
   console.log(`\nTotal predições corrigidas: ${totalFixed}`);
 
-  // Resultado final
   const pools = await prisma.pool.findMany({ select: { id: true, name: true } });
   for (const pool of pools) {
     const participants = await prisma.participant.findMany({

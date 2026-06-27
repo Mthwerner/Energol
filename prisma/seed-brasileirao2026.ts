@@ -127,25 +127,33 @@ async function main() {
       const homeScore = m.score.fullTime.home;
       const awayScore = m.score.fullTime.away;
 
-      await prisma.game.upsert({
-        where:  { externalId: m.id },
-        update: {
-          homeTeam, awayTeam, homeCrest, awayCrest,
-          matchDate, status,
-          group: m.group ?? null,
-          homeScore: status === 'FINISHED' ? homeScore : null,
-          awayScore: status === 'FINISHED' ? awayScore : null,
-        },
-        create: {
-          roundId: round.id,
-          externalId: m.id,
-          homeTeam, awayTeam, homeCrest, awayCrest,
-          matchDate, status,
-          group: m.group ?? null,
-          homeScore: status === 'FINISHED' ? homeScore : null,
-          awayScore: status === 'FINISHED' ? awayScore : null,
-        },
+      const existingGame = await prisma.game.findFirst({
+        where: { externalId: m.id, roundId: round.id },
       });
+      if (existingGame) {
+        await prisma.game.update({
+          where: { id: existingGame.id },
+          data: {
+            homeTeam, awayTeam, homeCrest, awayCrest,
+            matchDate, status,
+            group: m.group ?? null,
+            homeScore: status === 'FINISHED' ? homeScore : null,
+            awayScore: status === 'FINISHED' ? awayScore : null,
+          },
+        });
+      } else {
+        await prisma.game.create({
+          data: {
+            roundId: round.id,
+            externalId: m.id,
+            homeTeam, awayTeam, homeCrest, awayCrest,
+            matchDate, status,
+            group: m.group ?? null,
+            homeScore: status === 'FINISHED' ? homeScore : null,
+            awayScore: status === 'FINISHED' ? awayScore : null,
+          },
+        });
+      }
 
       totalGames++;
     }
