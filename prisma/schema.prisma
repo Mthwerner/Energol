@@ -48,6 +48,7 @@ model User {
   email     String   @unique
   password  String
   role      Role     @default(USER)
+  avatar    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -66,6 +67,17 @@ model Pool {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // ── Peso por fase no mata-mata (opcional, desligado por padrão) ─────────────
+  // Só afeta bolões da Copa do Mundo. Fases de grupos e Brasileirão sempre 1×.
+  // Bloqueado para edição após o início da primeira rodada eliminatória.
+  knockoutWeightEnabled Boolean @default(false)
+  weightLast32          Int     @default(2)  // Rodada de 32
+  weightLast16          Int     @default(3)  // Oitavas de Final
+  weightQuarter         Int     @default(4)  // Quartas de Final
+  weightSemi            Int     @default(5)  // Semifinais
+  weightThird           Int     @default(2)  // Disputa pelo 3º Lugar
+  weightFinal           Int     @default(6)  // Final
 
   owner        User          @relation("PoolOwner", fields: [ownerId], references: [id])
   participants Participant[]
@@ -112,6 +124,9 @@ model Round {
   startDate DateTime
   endDate   DateTime
   status    RoundStatus @default(OPEN)
+  // FDStage da rodada (ex: GROUP_STAGE, LAST_32, REGULAR_SEASON).
+  // Nulo em rodadas criadas antes desta feature; populado pelo sync/seed.
+  stage     String?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
 
@@ -133,7 +148,7 @@ model Game {
   homeScore Int?
   awayScore Int?
   status    GameStatus @default(SCHEDULED)
-  externalId Int?      @unique
+  externalId Int?
   group      String?
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
@@ -141,17 +156,23 @@ model Game {
   round       Round                 @relation(fields: [roundId], references: [id])
   predictions Prediction[]
   corrections ResultCorrectionLog[]
+
+  @@index([externalId])
 }
 
 model Prediction {
-  id        String   @id @default(cuid())
-  userId    String
-  gameId    String
-  homeScore Int
-  awayScore Int
-  points    Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  userId     String
+  gameId     String
+  homeScore  Int
+  awayScore  Int
+  // Pontuação-base (10/7/5/3/0) antes de aplicar o multiplicador de fase.
+  // Nulo em predições antigas; contadores de tier usam (basePoints ?? points).
+  basePoints Int?
+  // Pontuação final = basePoints × multiplicador da fase (ou basePoints quando peso = 1).
+  points     Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
   game Game @relation(fields: [gameId], references: [id])
